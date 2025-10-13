@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CogniNote Pro - 智能AI记事本</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-color: #6366F1;
+            --secondary-color: #8B5CF6;
+            --accent-color: #EC4899;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --error-color: #EF4444;
+            --info-color: #3B82F6;
+            
+            --bg-primary: #FAFBFC;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --bg-hover: #F1F5F9;
+            
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-tertiary: #94A3B8;
+            --text-inverse: #FFFFFF;
+            
+            --border-light: #E2E8F0;
+            --border-medium: #CBD5E1;
+            --border-dark: #94A3B8;
+            
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            --radius-xs: 4px;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-2xl: 20px;
+            
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            
+            --ai-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
+            --success-gradient: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+            --warning-gradient: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+            --error-gradient: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+        }
+        
+        /* 深色模式 */
+        [data-theme="dark"] {
+            --bg-primary: #0F172A;
+            --bg-secondary: #1E293B;
+            --bg-tertiary: #334155;
+            --bg-card: #1E293B;
+            --bg-hover: #334155;
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #CBD5E1;
+            --text-tertiary: #64748B;
+            
+            --border-light: #334155;
+            --border-medium: #475569;
+            --border-dark: #64748B;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+            overflow-x: hidden;
+        }
+        
+        /* 应用容器 */
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 页面切换 */
+        .page {
+            display: none;
+            flex: 1;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 顶部导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        [data-theme="dark"] .navbar {
+            background: rgba(30, 41, 59, 0.8);
+        }
+        
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--ai-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            gap: var(--space-sm);
+            text-decoration: none;
+        }
+        
+        .logo i {
+            background: var(--ai-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.75rem;
+        }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+        
+        .nav-item.active {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            position: relative;
+            margin: 0 var(--space-xl);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: var(--space-md) var(--space-md) var(--space-md) 3rem;
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            font-size: 0.95rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+        
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-hover);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+            transform: translateY(-2px);
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-lg);
+            background: var(--ai-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .theme-toggle {
+            background: var(--bg-hover);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xs);
+            display: flex;
+        }
+        
+        .theme-btn {
+            padding: var(--space-xs) var(--space-sm);
+            border: none;
+            background: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+        
+        .theme-btn.active {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+            width: 100%;
+        }
+        
+        .page-header {
+            padding: var(--space-xl) 0 var(--space-lg) 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: var(--space-xl);
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+            background: var(--ai-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--ai-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--primary-color);
+        }
+        
+        .card:hover::before {
+            opacity: 1;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .card-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ai-gradient);
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+        
+        .grid {
+            display: grid;
+            gap: var(--space-xl);
+        }
+        
+        .grid-auto { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-lg);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-lg);
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--ai-gradient);
+            color: var(--text-inverse);
+            border-color: transparent;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+        
+        .btn-sm {
+            padding: var(--space-sm) var(--space-md);
+            font-size: 0.875rem;
+        }
+        
+        /* AI面板 */
+        .ai-panel {
+            background: var(--ai-gradient);
+            color: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ai-panel-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .ai-panel-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .ai-panel-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .ai-panel-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .ai-suggestions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .ai-suggestion {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--space-sm) var(--space-md);
+            font-size: 0.9rem;
+        }
+        
+        /* 编辑器样式 */
+        .editor-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .editor-sidebar {
+            width: 300px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .editor-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+        }
+        
+        .sidebar-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-lg);
+        }
+        
+        .sidebar-section {
+            margin-bottom: var(--space-xl);
+        }
+        
+        .sidebar-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-md);
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-bottom: var(--space-xs);
+        }
+        
+        .sidebar-item:hover {
+            background: var(--bg-hover);
+            color: var(--primary-color);
+        }
+        
+        .sidebar-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar-item-icon {
+            width: 20px;
+            text-align: center;
+        }
+        
+        .sidebar-item-count {
+            margin-left: auto;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+        }
+        
+        .sidebar-item.active .sidebar-item-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .editor-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-secondary);
+        }
+        
+        .editor-title {
+            width: 100%;
+            border: none;
+            background: none;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+            font-family: inherit;
+        }
+        
+        .editor-title:focus {
+            outline: none;
+        }
+        
+        .editor-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+        
+        .editor-tags {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            padding: var(--space-xs) var(--space-sm);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border-radius: var(--radius-xl);
+            font-size: 0.8rem;
+            border: 1px solid var(--border-light);
+        }
+        
+        .tag-primary {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-color);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+        
+        .tag-ai {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            color: var(--primary-color);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        
+        .editor-content {
+            flex: 1;
+            padding: var(--space-xl);
+        }
+        
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            resize: none;
+            font-family: inherit;
+        }
+        
+        .editor-textarea:focus {
+            outline: none;
+        }
+        
+        .editor-toolbar {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-light);
+            padding: var(--space-md) var(--space-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-tools {
+            display: flex;
+            gap: var(--space-sm);
+        }
+        
+        .editor-tool {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .editor-tool:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .editor-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            color: var(--text-tertiary);
+            font-size: 0.875rem;
+        }
+        
+        /* 项目卡片 */
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--ai-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .project-card:hover::before {
+            opacity: 1;
+        }
+        
+        .project-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .project-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .project-status {
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-xl);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .project-status.active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+        
+        .project-status.pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            margin: var(--space-sm) 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--ai-gradient);
+            transition: width 0.6s ease;
+        }
+        
+        .project-meta {
+            display: flex;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .project-meta-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: var(--space-sm);
+        }
+        
+        .project-action {
+            flex: 1;
+            padding: var(--space-sm);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+        }
+        
+        .project-action:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        /* 聊天界面 */
+        .chat-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .chat-sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+        }
+        
+        .chat-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .chat-status-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--success-color);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-xl);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+        
+        .chat-message {
+            display: flex;
+            gap: var(--space-md);
+            max-width: 80%;
+        }
+        
+        .chat-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .chat-avatar.ai {
+            background: var(--ai-gradient);
+            color: white;
+        }
+        
+        .chat-avatar.user {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .chat-bubble {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            position: relative;
+            max-width: 100%;
+        }
+        
+        .chat-message.user .chat-bubble {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .chat-text {
+            margin-bottom: var(--space-sm);
+            line-height: 1.6;
+        }
+        
+        .chat-time {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            text-align: right;
+        }
+        
+        .chat-message.user .chat-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .chat-input-area {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-light);
+            padding: var(--space-lg);
+        }
+        
+        .chat-input-container {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-input-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .chat-input {
+            width: 100%;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            color: var(--text-primary);
+            resize: none;
+            min-height: 60px;
+            font-family: inherit;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+        }
+        
+        .chat-input-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--space-md);
+        }
+        
+        .chat-tools {
+            display: flex;
+            gap: var(--space-sm);
+        }
+        
+        .chat-tool {
+            background: var(--bg-hover);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-tool:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .chat-send {
+            background: var(--ai-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: var(--space-md) var(--space-lg);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            transition: all 0.3s ease;
+        }
+        
+        .chat-send:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .chat-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .quick-action {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            text-align: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+        
+        .quick-action:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        /* 文章列表 */
+        .article-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .article-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .article-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--ai-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .article-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .article-item:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .article-item.active {
+            border-color: var(--primary-color);
+        }
+        
+        .article-item.active::before {
+            transform: scaleX(1);
+        }
+        
+        .article-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+        
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            color: var(--text-tertiary);
+            font-size: 0.875rem;
+            margin-bottom: var(--space-md);
+        }
+        
+        .article-meta-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+        
+        .article-content {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: var(--space-md);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .article-tags {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 968px) {
+            .nav-menu { display: none; }
+            .editor-container, .chat-container { flex-direction: column; }
+            .editor-sidebar, .chat-sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-light); }
+        }
+        
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+        }
+        
+        [data-theme="dark"] .loading-overlay {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-light);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: var(--space-xl);
+            right: var(--space-xl);
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 1001;
+            max-width: 400px;
+            transform: translateX(calc(100% + var(--space-xl)));
+            transition: transform 0.4s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.875rem;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .notification-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+        
+        .notification-content {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        
+        .notification.success .notification-icon {
+            background: var(--success-color);
+        }
+        
+        .notification.warning .notification-icon {
+            background: var(--warning-color);
+        }
+        
+        .notification.error .notification-icon {
+            background: var(--error-color);
+        }
+        
+        .notification.info .notification-icon {
+            background: var(--info-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <nav class="navbar">
+            <div class="navbar-left">
+                <a href="#" class="logo" onclick="navigateTo('dashboard')">
+                    <i class="fas fa-brain"></i>
+                    CogniNote Pro
+                </a>
+                
+                <div class="nav-menu">
+                    <a href="#" class="nav-item active" onclick="navigateTo('dashboard')" data-page="dashboard">
+                        <i class="fas fa-home"></i>
+                        首页
+                    </a>
+                    <a href="#" class="nav-item" onclick="navigateTo('notes')" data-page="notes">
+                        <i class="fas fa-edit"></i>
+                        笔记
+                    </a>
+                    <a href="#" class="nav-item" onclick="navigateTo('projects')" data-page="projects">
+                        <i class="fas fa-tasks"></i>
+                        项目
+                    </a>
+                    <a href="#" class="nav-item" onclick="navigateTo('ai-assistant')" data-page="ai-assistant">
+                        <i class="fas fa-robot"></i>
+                        AI助手
+                    </a>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="搜索笔记、项目或AI对话..." onkeyup="performSearch(this.value)">
+            </div>
+            
+            <div class="navbar-right">
+                <div class="theme-toggle">
+                    <button class="theme-btn active" onclick="setTheme('light')">
+                        <i class="fas fa-sun"></i>
+                    </button>
+                    <button class="theme-btn" onclick="setTheme('dark')">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                
+                <button class="nav-btn" onclick="toggleNotifications()" title="通知">
+                    <i class="fas fa-bell"></i>
+                </button>
+                
+                <button class="nav-btn" onclick="toggleSettings()" title="设置">
+                    <i class="fas fa-cog"></i>
+                </button>
+                
+                <div class="user-avatar" onclick="toggleUserMenu()" title="用户菜单">
+                    A
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 首页 Dashboard -->
+            <div class="page active" id="dashboard">
+                <div class="container">
+                    <div class="page-header">
+                        <h1 class="page-title">智能工作台</h1>
+                        <p class="page-subtitle">您的AI驱动生产力中心，让创意与效率完美结合</p>
+                    </div>
+
+                    <!-- 主要功能卡片 -->
+                    <div class="grid grid-auto">
+                        <!-- AI今日洞察 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    AI今日洞察
+                                </div>
+                            </div>
+                            
+                            <div class="ai-panel">
+                                <div class="ai-panel-header">
+                                    <div class="ai-panel-icon">
+                                        <i class="fas fa-lightbulb"></i>
+                                    </div>
+                                    <div class="ai-panel-title">智能分析</div>
+                                </div>
+                                <div class="ai-panel-content">
+                                    <div class="ai-suggestions">
+                                        <div class="ai-suggestion">📈 您的写作效率比上周提升了25%</div>
+                                        <div class="ai-suggestion">🎯 建议优先完成"移动端设计"项目</div>
+                                        <div class="ai-suggestion">💡 发现3个可以优化的工作流程</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: var(--space-md); margin-top: var(--space-lg);">
+                                <button class="btn btn-primary" onclick="navigateTo('notes')" style="flex: 1;">
+                                    <i class="fas fa-plus"></i>
+                                    新建笔记
+                                </button>
+                                <button class="btn btn-secondary" onclick="navigateTo('ai-assistant')" style="flex: 1;">
+                                    <i class="fas fa-robot"></i>
+                                    AI对话
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 最近活动 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    最近活动
+                                </div>
+                            </div>
+                            
+                            <div class="article-list">
+                                <div class="article-item" onclick="openNote('note1')">
+                                    <div class="article-title">产品设计规范文档</div>
+                                    <div class="article-meta">
+                                        <div class="article-meta-item">
+                                            <i class="fas fa-clock"></i>
+                                            2小时前
+                                        </div>
+                                        <div class="article-meta-item">
+                                            <i class="fas fa-edit"></i>
+                                            已编辑
+                                        </div>
+                                    </div>
+                                    <div class="article-content">
+                                        设计规范是确保产品视觉一致性的重要文档，包含颜色、字体、组件等详细说明...
+                                    </div>
+                                    <div class="article-tags">
+                                        <span class="tag tag-primary">设计</span>
+                                        <span class="tag tag-ai">AI辅助</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="article-item" onclick="openProject('project1')">
+                                    <div class="article-title">移动端适配项目进展</div>
+                                    <div class="article-meta">
+                                        <div class="article-meta-item">
+                                            <i class="fas fa-clock"></i>
+                                            4小时前
+                                        </div>
+                                        <div class="article-meta-item">
+                                            <i class="fas fa-tasks"></i>
+                                            项目更新
+                                        </div>
+                                    </div>
+                                    <div class="article-content">
+                                        移动端适配项目当前进度75%，预计本周完成响应式设计部分...
+                                    </div>
+                                    <div class="article-tags">
+                                        <span class="tag">进行中</span>
+                                        <span class="tag tag-primary">前端</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 项目概览 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </div>
+                                    项目概览
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: var(--space-lg);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+                                    <span style="color: var(--text-secondary);">总体进度</span>
+                                    <span style="color: var(--primary-color); font-weight: 600;">68%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 68%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--success-color);">5</div>
+                                    <div style="color: var(--text-secondary); font-size: 0.875rem;">已完成</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--warning-color);">3</div>
+                                    <div style="color: var(--text-secondary); font-size: 0.875rem;">进行中</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--text-tertiary);">2</div>
+                                    <div style="color: var(--text-secondary); font-size: 0.875rem;">待启动</div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-primary" style="width: 100%;" onclick="navigateTo('projects')">
+                                <i class="fas fa-plus"></i>
+                                查看所有项目
+                            </button>
+                        </div>
+
+                        <!-- 智能建议 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-magic"></i>
+                                    </div>
+                                    智能建议
+                                </div>
+                            </div>
+                            
+                            <div class="ai-suggestions">
+                                <div class="ai-suggestion" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success-color);">
+                                    🚀 建议将"用户体验优化"任务提前，可以提升项目整体质量
+                                </div>
+                                <div class="ai-suggestion" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: var(--warning-color);">
+                                    ⏰ "移动端适配"项目有2个任务即将到期，需要重点关注
+                                </div>
+                                <div class="ai-suggestion" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: var(--info-color);">
+                                    📚 基于您的写作习惯，推荐在上午时段进行创意类文档编写
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: var(--space-lg);">
+                                <button class="btn btn-secondary" style="width: 100%;" onclick="navigateTo('ai-assistant')">
+                                    <i class="fas fa-robot"></i>
+                                    获取更多AI建议
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 笔记页面 -->
+            <div class="page" id="notes">
+                <div class="editor-container">
+                    <!-- 左侧边栏 -->
+                    <div class="editor-sidebar">
+                        <div class="sidebar-header">
+                            <button class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-lg);" onclick="createNewNote()">
+                                <i class="fas fa-plus"></i>
+                                新建笔记
+                            </button>
+                            
+                            <div class="search-container" style="margin: 0;">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" class="search-input" placeholder="搜索笔记..." onkeyup="searchNotes(this.value)">
+                            </div>
+                        </div>
+                        
+                        <div class="sidebar-content">
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">分类</div>
+                                <a href="#" class="sidebar-item active" onclick="filterNotes('all')">
+                                    <i class="fas fa-file-alt sidebar-item-icon"></i>
+                                    全部笔记
+                                    <span class="sidebar-item-count">127</span>
+                                </a>
+                                <a href="#" class="sidebar-item" onclick="filterNotes('projects')">
+                                    <i class="fas fa-folder sidebar-item-icon"></i>
+                                    项目笔记
+                                    <span class="sidebar-item-count">45</span>
+                                </a>
+                                <a href="#" class="sidebar-item" onclick="filterNotes('favorites')">
+                                    <i class="fas fa-star sidebar-item-icon"></i>
+                                    收藏夹
+                                    <span class="sidebar-item-count">23</span>
+                                </a>
+                                <a href="#" class="sidebar-item" onclick="filterNotes('drafts')">
+                                    <i class="fas fa-edit sidebar-item-icon"></i>
+                                    草稿箱
+                                    <span class="sidebar-item-count">8</span>
+                                </a>
+                                <a href="#" class="sidebar-item" onclick="filterNotes('trash')">
+                                    <i class="fas fa-trash sidebar-item-icon"></i>
+                                    废纸篓
+                                    <span class="sidebar-item-count">12</span>
+                                </a>
+                            </div>
+                            
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">最近笔记</div>
+                                <div class="article-list">
+                                    <div class="article-item active" onclick="loadNote('note1')">
+                                        <div class="article-title">产品设计规范文档</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                2小时前
+                                            </div>
+                                        </div>
+                                        <div class="article-tags">
+                                            <span class="tag tag-primary">设计</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="article-item" onclick="loadNote('note2')">
+                                        <div class="article-title">项目会议纪要</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                昨天
+                                            </div>
+                                        </div>
+                                        <div class="article-tags">
+                                            <span class="tag">会议</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="article-item" onclick="loadNote('note3')">
+                                        <div class="article-title">技术方案调研</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                2天前
+                                            </div>
+                                        </div>
+                                        <div class="article-tags">
+                                            <span class="tag">技术</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主编辑区域 -->
+                    <div class="editor-main">
+                        <div class="editor-header">
+                            <input type="text" class="editor-title" placeholder="请输入笔记标题..." value="产品设计规范文档" id="noteTitle">
+                            
+                            <div class="editor-meta">
+                                <div class="editor-tags">
+                                    <span class="tag tag-primary">设计</span>
+                                    <span class="tag tag-ai">AI辅助</span>
+                                    <button class="btn btn-sm btn-secondary" onclick="showTagManager()">
+                                        <i class="fas fa-plus"></i>
+                                        添加标签
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-panel">
+                                <div class="ai-panel-header">
+                                    <div class="ai-panel-icon">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="ai-panel-title">AI写作助手</div>
+                                </div>
+                                <div class="ai-panel-content">
+                                    <div class="ai-suggestions">
+                                        <div class="ai-suggestion">💡 建议添加色彩使用指南章节</div>
+                                        <div class="ai-suggestion">📐 可以补充组件规格说明</div>
+                                        <div class="ai-suggestion">🎨 推荐加入实际应用案例</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="editor-content">
+                            <textarea 
+                                class="editor-textarea" 
+                                id="noteContent" 
+                                placeholder="开始记录你的想法..." 
+                                oninput="updateWordCount()"
+                            ># 产品设计规范文档
+
+## 1. 概述
+
+本文档定义了产品的视觉设计标准，确保整个产品生态的一致性和专业性。
+
+## 2. 色彩系统
+
+### 主色调
+- **主要色**: #6366F1 (Indigo-500)
+- **次要色**: #8B5CF6 (Violet-500)
+- **强调色**: #EC4899 (Pink-500)
+
+### 中性色
+- **文本主色**: #0F172A (Slate-900)
+- **文本次色**: #475569 (Slate-600)
+- **边框色**: #E2E8F0 (Slate-200)
+
+## 3. 字体规范
+
+### 字体族
+- **主字体**: Inter, -apple-system, BlinkMacSystemFont
+- **代码字体**: 'Fira Code', 'Monaco', monospace
+
+### 字体大小
+- **标题1**: 2rem (32px)
+- **标题2**: 1.5rem (24px)
+- **正文**: 1rem (16px)
+- **小字**: 0.875rem (14px)
+
+## 4. 间距系统
+
+采用8px网格系统：
+- xs: 4px
+- sm: 8px
+- md: 16px
+- lg: 24px
+- xl: 32px
+
+## 5. 组件规范
+
+### 按钮
+- 主要按钮：圆角12px，最小高度40px
+- 次要按钮：边框1px，背景透明
+- 图标按钮：32x32px，圆角8px
+
+### 输入框
+- 边框圆角：8px
+- 内边距：12px 16px
+- 焦点状态：边框色变为主色调
+
+### 卡片
+- 圆角：16px
+- 阴影：0 4px 6px rgba(0, 0, 0, 0.1)
+- 内边距：24px
+
+---
+
+*本文档将持续更新，确保与产品发展保持同步。*</textarea>
+                        </div>
+                        
+                        <div class="editor-toolbar">
+                            <div class="editor-tools">
+                                <button class="editor-tool" onclick="formatText('bold')" title="加粗">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('italic')" title="斜体">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('heading')" title="标题">
+                                    <i class="fas fa-heading"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('list')" title="列表">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('link')" title="链接">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('image')" title="图片">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="editor-tool" onclick="formatText('code')" title="代码">
+                                    <i class="fas fa-code"></i>
+                                </button>
+                                <button class="editor-tool" onclick="showAIAssistant()" title="AI助手">
+                                    <i class="fas fa-robot"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="editor-status">
+                                <span id="wordCount">字数: 1,247</span>
+                                <span>最后保存: 刚刚</span>
+                                <button class="btn btn-primary btn-sm" onclick="saveNote()">
+                                    <i class="fas fa-save"></i>
+                                    保存
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目页面 -->
+            <div class="page" id="projects">
+                <div class="container">
+                    <div class="page-header">
+                        <h1 class="page-title">项目管理</h1>
+                        <p class="page-subtitle">统一管理您的所有项目，AI助力提升执行效率</p>
+                    </div>
+
+                    <!-- 项目筛选和操作 -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-xl);">
+                        <div style="display: flex; gap: var(--space-md);">
+                            <button class="btn btn-secondary active" onclick="filterProjects('all')">
+                                全部项目 <span class="tag" style="margin-left: var(--space-xs);">10</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="filterProjects('active')">
+                                进行中 <span class="tag" style="margin-left: var(--space-xs);">3</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="filterProjects('completed')">
+                                已完成 <span class="tag" style="margin-left: var(--space-xs);">5</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="filterProjects('pending')">
+                                待启动 <span class="tag" style="margin-left: var(--space-xs);">2</span>
+                            </button>
+                        </div>
+                        
+                        <div style="display: flex; gap: var(--space-md);">
+                            <button class="btn btn-secondary" onclick="toggleProjectView()">
+                                <i class="fas fa-th-large"></i>
+                                视图
+                            </button>
+                            <button class="btn btn-primary" onclick="createNewProject()">
+                                <i class="fas fa-plus"></i>
+                                新建项目
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 项目网格 -->
+                    <div class="grid grid-auto" id="projectsGrid">
+                        <!-- 项目A -->
+                        <div class="project-card" data-status="active">
+                            <div class="project-header">
+                                <div>
+                                    <div class="project-title">
+                                        <i class="fas fa-brain" style="color: var(--primary-color);"></i>
+                                        CogniNote 平台开发
+                                    </div>
+                                    <div class="project-status active">进行中</div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: var(--space-lg);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+                                    <span style="color: var(--text-secondary);">项目进度</span>
+                                    <span style="color: var(--primary-color); font-weight: 600;">75%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 75%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="project-meta">
+                                <div class="project-meta-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>团队: 5人</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>截止: 3天后</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-star"></i>
+                                    <span>优先级: 高</span>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-panel" style="margin: var(--space-lg) 0;">
+                                <div class="ai-panel-header">
+                                    <div class="ai-panel-icon">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <div class="ai-panel-title">AI提醒</div>
+                                </div>
+                                <div class="ai-panel-content">
+                                    有2个高优先级任务需要关注，建议优先处理前端组件开发
+                                </div>
+                            </div>
+                            
+                            <div class="project-actions">
+                                <a href="#" class="project-action" onclick="openProjectNotes('project1')">
+                                    <i class="fas fa-edit"></i>
+                                    笔记
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTasks('project1')">
+                                    <i class="fas fa-tasks"></i>
+                                    任务
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTeam('project1')">
+                                    <i class="fas fa-users"></i>
+                                    成员
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectDetails('project1')">
+                                    <i class="fas fa-chart-line"></i>
+                                    详情
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 项目B -->
+                        <div class="project-card" data-status="active">
+                            <div class="project-header">
+                                <div>
+                                    <div class="project-title">
+                                        <i class="fas fa-mobile-alt" style="color: var(--success-color);"></i>
+                                        移动端适配优化
+                                    </div>
+                                    <div class="project-status active">进行中</div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: var(--space-lg);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+                                    <span style="color: var(--text-secondary);">项目进度</span>
+                                    <span style="color: var(--primary-color); font-weight: 600;">60%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 60%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="project-meta">
+                                <div class="project-meta-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>团队: 3人</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>截止: 1周后</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-star"></i>
+                                    <span>优先级: 中</span>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-panel" style="margin: var(--space-lg) 0;">
+                                <div class="ai-panel-header">
+                                    <div class="ai-panel-icon">
+                                        <i class="fas fa-lightbulb"></i>
+                                    </div>
+                                    <div class="ai-panel-title">AI建议</div>
+                                </div>
+                                <div class="ai-panel-content">
+                                    建议使用CSS Grid布局提升响应式效果，可参考最新设计规范
+                                </div>
+                            </div>
+                            
+                            <div class="project-actions">
+                                <a href="#" class="project-action" onclick="openProjectNotes('project2')">
+                                    <i class="fas fa-edit"></i>
+                                    笔记
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTasks('project2')">
+                                    <i class="fas fa-tasks"></i>
+                                    任务
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTeam('project2')">
+                                    <i class="fas fa-users"></i>
+                                    成员
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectDetails('project2')">
+                                    <i class="fas fa-chart-line"></i>
+                                    详情
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 项目C -->
+                        <div class="project-card" data-status="pending">
+                            <div class="project-header">
+                                <div>
+                                    <div class="project-title">
+                                        <i class="fas fa-chart-pie" style="color: var(--warning-color);"></i>
+                                        数据分析dashboard
+                                    </div>
+                                    <div class="project-status pending">计划中</div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: var(--space-lg);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+                                    <span style="color: var(--text-secondary);">项目进度</span>
+                                    <span style="color: var(--primary-color); font-weight: 600;">15%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: 15%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="project-meta">
+                                <div class="project-meta-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>团队: 4人</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>启动: 下周</span>
+                                </div>
+                                <div class="project-meta-item">
+                                    <i class="fas fa-star"></i>
+                                    <span>优先级: 中</span>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-panel" style="margin: var(--space-lg) 0;">
+                                <div class="ai-panel-header">
+                                    <div class="ai-panel-icon">
+                                        <i class="fas fa-rocket"></i>
+                                    </div>
+                                    <div class="ai-panel-title">AI规划</div>
+                                </div>
+                                <div class="ai-panel-content">
+                                    建议先完成技术选型和原型设计，预计需要2-3天准备时间
+                                </div>
+                            </div>
+                            
+                            <div class="project-actions">
+                                <a href="#" class="project-action" onclick="openProjectNotes('project3')">
+                                    <i class="fas fa-edit"></i>
+                                    笔记
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTasks('project3')">
+                                    <i class="fas fa-tasks"></i>
+                                    任务
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectTeam('project3')">
+                                    <i class="fas fa-users"></i>
+                                    成员
+                                </a>
+                                <a href="#" class="project-action" onclick="openProjectDetails('project3')">
+                                    <i class="fas fa-chart-line"></i>
+                                    详情
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 创建新项目卡片 -->
+                        <div class="card" style="background: var(--ai-gradient); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 400px; cursor: pointer;" onclick="createNewProject()">
+                            <div style="font-size: 4rem; opacity: 0.8; margin-bottom: var(--space-lg);">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: var(--space-sm);">
+                                创建新项目
+                            </div>
+                            <div style="opacity: 0.9;">
+                                开启您的下一个创意之旅
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI助手页面 -->
+            <div class="page" id="ai-assistant">
+                <div class="chat-container">
+                    <!-- 左侧聊天历史 -->
+                    <div class="chat-sidebar">
+                        <div class="sidebar-header">
+                            <button class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-lg);" onclick="startNewChat()">
+                                <i class="fas fa-plus"></i>
+                                新对话
+                            </button>
+                            
+                            <div class="quick-actions-grid">
+                                <div class="quick-action" onclick="quickPrompt('写作助手')">
+                                    ✍️ 写作助手
+                                </div>
+                                <div class="quick-action" onclick="quickPrompt('数据分析')">
+                                    📊 数据分析
+                                </div>
+                                <div class="quick-action" onclick="quickPrompt('创意激发')">
+                                    💡 创意激发
+                                </div>
+                                <div class="quick-action" onclick="quickPrompt('任务规划')">
+                                    🎯 任务规划
+                                </div>
+                                <div class="quick-action" onclick="quickPrompt('代码优化')">
+                                    🔧 代码优化
+                                </div>
+                                <div class="quick-action" onclick="quickPrompt('内容翻译')">
+                                    🌍 内容翻译
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sidebar-content">
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">今日对话</div>
+                                <div class="article-list">
+                                    <div class="article-item active" onclick="loadChat('chat1')">
+                                        <div class="article-title">📝 设计规范文档讨论</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                2小时前
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="article-item" onclick="loadChat('chat2')">
+                                        <div class="article-title">🎯 项目规划建议</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                4小时前
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">昨天</div>
+                                <div class="article-list">
+                                    <div class="article-item" onclick="loadChat('chat3')">
+                                        <div class="article-title">📊 数据分析报告</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                昨天
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="article-item" onclick="loadChat('chat4')">
+                                        <div class="article-title">💡 创意头脑风暴</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                昨天
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">本周早些时候</div>
+                                <div class="article-list">
+                                    <div class="article-item" onclick="loadChat('chat5')">
+                                        <div class="article-title">🔧 技术方案咨询</div>
+                                        <div class="article-meta">
+                                            <div class="article-meta-item">
+                                                <i class="fas fa-clock"></i>
+                                                3天前
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主聊天区域 -->
+                    <div class="chat-main">
+                        <div class="chat-header">
+                            <div class="chat-status">
+                                <div class="chat-status-indicator"></div>
+                                <div>
+                                    <div style="font-weight: 600;">CogniAI 智能助手</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">在线 • 专业模式</div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: var(--space-md);">
+                                <button class="btn btn-secondary btn-sm" onclick="exportChat()">
+                                    <i class="fas fa-download"></i>
+                                    导出
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="shareChat()">
+                                    <i class="fas fa-share"></i>
+                                    分享
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="clearChat()">
+                                    <i class="fas fa-trash"></i>
+                                    清空
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- AI欢迎消息 -->
+                            <div class="chat-message ai">
+                                <div class="chat-avatar ai">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="chat-bubble">
+                                    <div class="chat-text">
+                                        您好！我是CogniAI，您的智能工作助手。我可以帮助您：
+                                        <br><br>
+                                        📝 <strong>内容创作</strong> - 文章写作、创意构思、内容优化<br>
+                                        📊 <strong>数据分析</strong> - 信息整理、报告生成、趋势分析<br>
+                                        🎯 <strong>项目管理</strong> - 任务规划、进度跟踪、团队协作<br>
+                                        💡 <strong>问题解决</strong> - 技术咨询、方案建议、最佳实践<br>
+                                        🌍 <strong>多语言支持</strong> - 翻译、本地化、文化适配<br>
+                                        <br>
+                                        今天想要完成什么任务？我来协助您高效完成！
+                                    </div>
+                                    <div class="chat-time">上午 10:00</div>
+                                </div>
+                            </div>
+
+                            <!-- 用户消息示例 -->
+                            <div class="chat-message user">
+                                <div class="chat-avatar user">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="chat-bubble">
+                                    <div class="chat-text">
+                                        帮我分析一下当前项目的进展情况，并给出优化建议
+                                    </div>
+                                    <div class="chat-time">上午 10:15</div>
+                                </div>
+                            </div>
+
+                            <!-- AI回复示例 -->
+                            <div class="chat-message ai">
+                                <div class="chat-avatar ai">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="chat-bubble">
+                                    <div class="chat-text">
+                                        基于您的项目数据分析，我为您生成了详细的进展报告：
+                                        <br><br>
+                                        
+                                        <div style="background: rgba(99, 102, 241, 0.1); padding: var(--space-lg); border-radius: var(--radius-lg); margin: var(--space-md) 0; border: 1px solid rgba(99, 102, 241, 0.2);">
+                                            <h4 style="color: var(--primary-color); margin-bottom: var(--space-md); display: flex; align-items: center; gap: var(--space-sm);">
+                                                <i class="fas fa-chart-line"></i>
+                                                项目进展分析
+                                            </h4>
+                                            
+                                            <div style="margin-bottom: var(--space-md);">
+                                                <strong>📊 总体进度：</strong> 68% (超出预期 8%)
+                                            </div>
+                                            
+                                            <div style="margin-bottom: var(--space-md);">
+                                                <strong>🎯 关键里程碑：</strong>
+                                                <ul style="margin: var(--space-sm) 0; padding-left: var(--space-lg);">
+                                                    <li>✅ 需求分析 (100%)</li>
+                                                    <li>✅ 原型设计 (100%)</li>
+                                                    <li>🔄 前端开发 (75%)</li>
+                                                    <li>🔄 后端API (60%)</li>
+                                                    <li>⏳ 测试阶段 (待启动)</li>
+                                                </ul>
+                                            </div>
+                                            
+                                            <div style="margin-bottom: var(--space-md);">
+                                                <strong>⚡ 团队效率：</strong> 比上月提升 15%
+                                            </div>
+                                            
+                                            <div>
+                                                <strong>🔥 风险提醒：</strong> 
+                                                <span style="color: var(--warning-color);">移动端适配任务可能延期 2-3 天</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <strong>💡 优化建议：</strong>
+                                        <br><br>
+                                        
+                                        1. <strong>资源重新分配</strong> - 建议将 1 名前端开发人员临时调配到移动端适配任务<br>
+                                        2. <strong>并行处理</strong> - API 开发和前端开发可以并行进行，减少依赖等待时间<br>
+                                        3. <strong>提前测试</strong> - 建议在开发阶段就开始单元测试，降低后期调试成本<br>
+                                        4. <strong>每日站会</strong> - 增加每日 15 分钟同步会议，及时发现和解决阻塞问题<br>
+                                        <br>
+                                        预计采用这些建议后，项目可以按时或提前 2-3 天完成。需要我为您制定详细的执行计划吗？
+                                    </div>
+                                    <div class="chat-time">上午 10:17</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-area">
+                            <div class="chat-input-container">
+                                <textarea 
+                                    class="chat-input" 
+                                    id="chatInput" 
+                                    placeholder="输入您的问题或需求，AI将为您提供专业建议..."
+                                    onkeydown="handleChatInput(event)"
+                                    oninput="updateSendButton()"
+                                ></textarea>
+                                
+                                <div class="chat-input-actions">
+                                    <div class="chat-tools">
+                                        <button class="chat-tool" onclick="uploadFile()" title="上传文件">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+                                        <button class="chat-tool" onclick="startVoiceInput()" title="语音输入">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+                                        <button class="chat-tool" onclick="insertEmoji()" title="表情">
+                                            <i class="fas fa-smile"></i>
+                                        </button>
+                                        <button class="chat-tool" onclick="showPromptLibrary()" title="提示词库">
+                                            <i class="fas fa-book"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()" disabled>
+                                        <i class="fas fa-paper-plane"></i>
+                                        发送
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-md); flex-wrap: wrap;">
+                                <button class="btn btn-sm btn-secondary" onclick="quickPrompt('帮我优化这段文字')">
+                                    ✍️ 文字优化
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="quickPrompt('生成项目计划')">
+                                    📋 项目计划
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="quickPrompt('解释这个概念')">
+                                    💡 概念解释
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="quickPrompt('代码审查')">
+                                    🔍 代码审查
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="quickPrompt('翻译内容')">
+                                    🌍 翻译
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 通知组件 -->
+    <div class="notification" id="notification">
+        <div class="notification-header">
+            <div class="notification-icon" id="notificationIcon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="notification-title" id="notificationTitle">通知</div>
+            <button class="notification-close" onclick="hideNotification()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-content" id="notificationContent">
+            这是一条通知消息
+        </div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div style="text-align: center; color: var(--text-primary);">
+            <div class="loading-spinner"></div>
+            <div style="margin-top: var(--space-lg); font-size: 1.1rem; font-weight: 500;">
+                正在处理中...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局应用状态
+        const AppState = {
+            currentPage: 'dashboard',
+            currentTheme: 'light',
+            user: {
+                name: 'Alex',
+                email: 'alex@example.com',
+                avatar: null
+            },
+            data: {
+                notes: new Map(),
+                projects: new Map(),
+                chats: new Map()
+            }
+        };
+
+        // 页面导航
+        function navigateTo(page) {
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.page === page) {
+                    item.classList.add('active');
+                }
+            });
+
+            // 切换页面
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            const targetPage = document.getElementById(page);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                AppState.currentPage = page;
+                
+                // 页面特定初始化
+                initializePage(page);
+            }
+
+            // 保存状态
+            saveAppState();
+        }
+
+        // 页面初始化
+        function initializePage(page) {
+            switch(page) {
+                case 'notes':
+                    initializeNotesPage();
+                    break;
+                case 'projects':
+                    initializeProjectsPage();
+                    break;
+                case 'ai-assistant':
+                    initializeAIPage();
+                    break;
+            }
+        }
+
+        function initializeNotesPage() {
+            updateWordCount();
+        }
+
+        function initializeProjectsPage() {
+            // 项目页面初始化
+        }
+
+        function initializeAIPage() {
+            // AI助手页面初始化
+        }
+
+        // 通知系统
+        function showNotification(message, type = 'info', title = '通知') {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notificationIcon');
+            const titleEl = document.getElementById('notificationTitle');
+            const content = document.getElementById('notificationContent');
+            
+            titleEl.textContent = title;
+            content.textContent = message;
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                warning: 'fa-exclamation-triangle', 
+                error: 'fa-times-circle',
+                info: 'fa-info-circle'
+            };
+            
+            icon.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i>`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function hideNotification() {
+            document.getElementById('notification').classList.remove('show');
+        }
+
+        // 主题切换
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            AppState.currentTheme = theme;
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event?.target.classList.add('active');
+            
+            saveAppState();
+            showNotification(`已切换到${theme === 'dark' ? '深色' : '浅色'}主题`, 'success');
+        }
+
+        // 搜索功能
+        function performSearch(query) {
+            if (query.length < 2) return;
+            
+            showLoading();
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification(`搜索"${query}"找到 8 条相关结果`, 'info', '搜索结果');
+            }, 800);
+        }
+
+        // 笔记相关功能
+        function createNewNote() {
+            showLoading();
+            
+            setTimeout(() => {
+                hideLoading();
+                
+                const noteId = generateId();
+                const note = {
+                    id: noteId,
+                    title: '新建笔记',
+                    content: '',
+                    tags: [],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+                
+                AppState.data.notes.set(noteId, note);
+                
+                document.getElementById('noteTitle').value = '新建笔记';
+                document.getElementById('noteContent').value = '';
+                
+                updateWordCount();
+                saveAppState();
+                showNotification('新笔记已创建', 'success');
+            }, 500);
+        }
+
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value;
+            
+            if (!title) {
+                showNotification('请输入笔记标题', 'warning');
+                return;
+            }
+            
+            showLoading();
+            
+            setTimeout(() => {
+                hideLoading();
+                
+                const noteId = getCurrentNoteId() || generateId();
+                const note = {
+                    id: noteId,
+                    title,
+                    content,
+                    tags: getCurrentNoteTags(),
+                    modified: new Date().toISOString()
+                };
+                
+                AppState.data.notes.set(noteId, note);
+                saveAppState();
+                showNotification('笔记已保存', 'success');
+                updateWordCount();
+            }, 800);
+        }
+
+        function updateWordCount() {
+            const content = document.getElementById('noteContent')?.value || '';
+            const wordCount = content.length;
+            const element = document.getElementById('wordCount');
+            if (element) {
+                element.textContent = `字数: ${wordCount.toLocaleString()}`;
+            }
+        }
+
+        function searchNotes(query) {
+            console.log('搜索笔记:', query);
+        }
+
+        function filterNotes(type) {
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            showNotification(`已切换到${type}视图`, 'info');
+        }
+
+        function loadNote(noteId) {
+            document.querySelectorAll('.article-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.article-item').classList.add('active');
+            
+            showLoading();
+            
+            setTimeout(() => {
+                hideLoading();
+                showNotification('笔记已加载', 'success');
+            }, 300);
+        }
+
+        // 项目相关功能  
+        function createNewProject() {
+            showNotification('创建项目功能开发中...', 'info');
+        }
+
+        function filterProjects(status) {
+            document.querySelectorAll('.btn-secondary').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.project-card').forEach(card => {
+                const cardStatus = card.dataset.status;
+                if (status === 'all' || cardStatus === status) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            showNotification(`已筛选${status}项目`, 'info');
+        }
+
+        function toggleProjectView() {
+            showNotification('视图切换功能开发中...', 'info');
+        }
+
+        function openProjectNotes(projectId) {
+            navigateTo('notes');
+            showNotification('已打开项目笔记', 'info');
+        }
+
+        function openProjectTasks(projectId) {
+            showNotification('任务管理功能开发中...', 'info');
+        }
+
+        function openProjectTeam(projectId) {
+            showNotification('团队管理功能开发中...', 'info');
+        }
+
+        function openProjectDetails(projectId) {
+            showNotification('项目详情功能开发中...', 'info');
+        }
+
+        // AI助手相关功能
+        function startNewChat() {
+            const chatMessages = document.getElementById('chatMessages');
+            
+            chatMessages.innerHTML = `
+                <div class="chat-message ai">
+                    <div class="chat-avatar ai">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="chat-bubble">
+                        <div class="chat-text">
+                            您好！我是CogniAI，开始新的对话吧。有什么可以帮助您的？
+                        </div>
+                        <div class="chat-time">${getCurrentTime()}</div>
+                    </div>
+                </div>
+            `;
+            
+            showNotification('新对话已开始', 'success');
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addChatMessage(message, 'user');
+            input.value = '';
+            updateSendButton();
+            
+            setTimeout(() => {
+                const responses = [
+                    '感谢您的问题！让我为您分析一下...',
+                    '这是一个很好的想法，我建议...',
+                    '基于您的描述，我认为可以从以下几个方面考虑...',
+                    '让我为您整理一份详细的建议清单...'
+                ];
+                
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addChatMessage(randomResponse, 'ai');
+            }, 1000);
+        }
+
+        function addChatMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            
+            const time = getCurrentTime();
+            const avatar = sender === 'ai' ? 'robot' : 'user';
+            
+            messageDiv.innerHTML = `
+                <div class="chat-avatar ${sender}">
+                    <i class="fas fa-${avatar}"></i>
+                </div>
+                <div class="chat-bubble">
+                    <div class="chat-text">${text}</div>
+                    <div class="chat-time">${time}</div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function handleChatInput(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        function updateSendButton() {
+            const input = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('chatSendBtn');
+            sendBtn.disabled = !input.value.trim();
+        }
+
+        function quickPrompt(prompt) {
+            const input = document.getElementById('chatInput');
+            input.value = prompt + '：';
+            input.focus();
+            updateSendButton();
+        }
+
+        function loadChat(chatId) {
+            document.querySelectorAll('.article-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.article-item').classList.add('active');
+            
+            showNotification('对话已切换', 'info');
+        }
+
+        function exportChat() {
+            showNotification('对话导出功能开发中...', 'info');
+        }
+
+        function shareChat() {
+            showNotification('对话分享功能开发中...', 'info');
+        }
+
+        function clearChat() {
+            if (confirm('确定要清空当前对话吗？')) {
+                startNewChat();
+            }
+        }
+
+        // 工具函数
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getCurrentNoteId() {
+            return 'note_' + Date.now();
+        }
+
+        function getCurrentNoteTags() {
+            return ['设计', 'AI辅助'];
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function saveAppState() {
+            try {
+                localStorage.setItem('cogninote_app_state', JSON.stringify(AppState));
+            } catch (error) {
+                console.error('保存应用状态失败:', error);
+            }
+        }
+
+        function loadAppState() {
+            try {
+                const savedState = localStorage.getItem('cogninote_app_state');
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    Object.assign(AppState, parsed);
+                }
+            } catch (error) {
+                console.error('加载应用状态失败:', error);
+            }
+        }
+
+        // 其他功能
+        function formatText(type) {
+            showNotification(`${type}格式化功能开发中...`, 'info');
+        }
+
+        function showTagManager() {
+            showNotification('标签管理功能开发中...', 'info');
+        }
+
+        function showAIAssistant() {
+            navigateTo('ai-assistant');
+        }
+
+        function toggleNotifications() {
+            showNotification('您有3条未读通知', 'info', '通知中心');
+        }
+
+        function toggleSettings() {
+            showNotification('设置功能开发中...', 'info');
+        }
+
+        function toggleUserMenu() {
+            showNotification('用户菜单功能开发中...', 'info');
+        }
+
+        function uploadFile() {
+            showNotification('文件上传功能开发中...', 'info');
+        }
+
+        function startVoiceInput() {
+            showNotification('语音输入功能开发中...', 'info');
+        }
+
+        function insertEmoji() {
+            showNotification('表情功能开发中...', 'info');
+        }
+
+        function showPromptLibrary() {
+            showNotification('提示词库功能开发中...', 'info');
+        }
+
+        function openNote(noteId) {
+            navigateTo('notes');
+            showNotification('笔记已打开', 'success');
+        }
+
+        function openProject(projectId) {
+            navigateTo('projects');
+            showNotification('项目已打开', 'success');
+        }
+
+        // 键盘快捷键
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    const searchInput = document.querySelector('.search-input');
+                    searchInput?.focus();
+                }
+                
+                if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                    e.preventDefault();
+                    if (AppState.currentPage === 'notes') {
+                        createNewNote();
+                    } else {
+                        navigateTo('notes');
+                    }
+                }
+                
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    if (AppState.currentPage === 'notes') {
+                        saveNote();
+                    }
+                }
+            });
+        }
+
+        // 应用初始化
+        function initializeApp() {
+            loadAppState();
+            setTheme(AppState.currentTheme);
+            setupKeyboardShortcuts();
+            initializePage(AppState.currentPage);
+            
+            if (AppState.currentPage !== 'dashboard') {
+                navigateTo(AppState.currentPage);
+            }
+            
+            setTimeout(() => {
+                showNotification('欢迎使用 CogniNote Pro！您的智能记事本已准备就绪', 'success', '欢迎');
+            }, 1000);
+        }
+
+        // DOM加载完成后初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setInterval(saveAppState, 30000);
+        });
+
+        window.addEventListener('beforeunload', function() {
+            saveAppState();
+        });
+    </script>
+</body>
+</html>
