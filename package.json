@@ -1,0 +1,58 @@
+{
+  "name": "cogninote-pro",
+  "version": "1.0.0",
+  "description": "CogniNote Pro - 智能AI记事本，一个现代化、功能丰富的智能笔记管理应用",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8080",
+    "build": "echo 'Static site - no build required'",
+    "start": "python -m http.server 8080",
+    "preview": "python -m http.server 8080",
+    "deploy": "vercel --prod",
+    "lint": "echo 'Linting not configured'",
+    "test": "echo 'Tests not configured'"
+  },
+  "keywords": [
+    "notes",
+    "notebook",
+    "ai",
+    "productivity",
+    "supabase",
+    "javascript",
+    "html5",
+    "css3",
+    "frontend",
+    "spa"
+  ],
+  "author": {
+    "name": "CogniNote Team",
+    "email": "contact@cogninote.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vientwu/CogniNote-pro.git"
+  },
+  "homepage": "https://cogninote-pro.vercel.app",
+  "bugs": {
+    "url": "https://github.com/vientwu/CogniNote-pro/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "vercel": {
+    "framework": null,
+    "buildCommand": null,
+    "outputDirectory": ".",
+    "installCommand": null
+  }
+}

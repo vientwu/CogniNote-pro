@@ -6,6 +6,8 @@
     <title>CogniNote Pro - 智能记事本</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -260,6 +262,47 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+        }
+        
+        /* 用户菜单样式 */
+        .user-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        
+        .user-menu-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .user-menu-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .user-menu-item i {
+            width: 16px;
+            color: var(--text-secondary);
+        }
+        
+        .user-menu-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 4px 0;
         }
         
         .theme-toggle {
@@ -2601,6 +2644,81 @@
             color: var(--text-primary);
         }
 
+        /* 认证表单样式 */
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .auth-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .auth-form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .auth-form-input {
+            padding: var(--space-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .auth-form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .auth-form-button {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .auth-form-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .auth-form-button:disabled {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .auth-form-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.875rem;
+            text-align: center;
+            margin-top: var(--space-sm);
+        }
+
+        .auth-form-link:hover {
+            text-decoration: underline;
+        }
+
+        .auth-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: var(--space-xs);
+        }
+
         .project-editor-body {
             max-height: 60vh;
             overflow-y: auto;
@@ -3408,6 +3526,402 @@
                 max-height: calc(100vh - 20px);
             }
         }
+
+        /* ==================== 设置页面样式 ==================== */
+        
+        .settings-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .settings-header {
+            margin-bottom: 30px;
+        }
+
+        .settings-header h1 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .settings-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .settings-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .settings-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .settings-tab:hover {
+            color: var(--primary-color);
+            background-color: var(--hover-bg);
+        }
+
+        .settings-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .settings-panel {
+            display: none;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
+        .settings-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .settings-section h3 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-section h3 i {
+            color: var(--primary-color);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-info {
+            flex: 1;
+        }
+
+        .settings-item-title {
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .settings-item-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .settings-item-control {
+            margin-left: 20px;
+        }
+
+        .settings-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .settings-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .settings-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .settings-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .settings-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* 账户信息样式 */
+        .account-info-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .account-avatar {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+
+        .account-details {
+            flex: 1;
+        }
+
+        .account-email {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .account-id {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .account-created {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .account-info-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .account-info-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* 使用统计样式 */
+        .usage-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: var(--hover-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 备份历史样式 */
+        .backup-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .backup-history-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .backup-history-empty i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .backup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--hover-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+
+        .backup-item-info {
+            flex: 1;
+        }
+
+        .backup-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .backup-item-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .backup-item-size {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .backup-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 危险操作样式 */
+        .danger-zone {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        .danger-zone h3 {
+            color: #dc3545;
+        }
+
+        .danger-zone h3 i {
+            color: #dc3545;
+        }
+
+        .danger-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .settings-container {
+                padding: 15px;
+            }
+
+            .settings-tabs {
+                margin-bottom: 20px;
+            }
+
+            .settings-tab {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .settings-section {
+                padding: 20px;
+            }
+
+            .settings-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .settings-item-control {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .settings-select {
+                width: 100%;
+            }
+
+            .account-info-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .usage-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .backup-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .backup-item-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .backup-actions,
+            .danger-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .usage-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-header h1 {
+                font-size: 24px;
+            }
+
+            .backup-item-actions {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3459,8 +3973,41 @@
                     <i class="fas fa-cog"></i>
                 </button>
                 
-                <div class="user-avatar" onclick="showNotification('用户菜单功能开发中...', 'info')" title="用户菜单">
-                    U
+                <!-- 认证相关UI -->
+                <div id="auth-container">
+                    <!-- 未登录状态 -->
+                    <div id="unauthenticated-ui" style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="showLoginModal()" style="padding: 8px 16px; font-size: 14px;">
+                            登录
+                        </button>
+                        <button class="btn btn-primary" onclick="showRegisterModal()" style="padding: 8px 16px; font-size: 14px;">
+                            注册
+                        </button>
+                    </div>
+                    
+                    <!-- 已登录状态 -->
+                    <div id="authenticated-ui" style="display: none; align-items: center; gap: 12px;">
+                        <span id="user-email" style="color: var(--text-secondary); font-size: 14px;"></span>
+                        <div class="user-avatar" onclick="toggleUserMenu()" title="用户菜单" style="position: relative;">
+                            <span id="user-initial">U</span>
+                            <!-- 用户菜单下拉 -->
+                            <div id="user-menu" class="user-menu" style="display: none;">
+                                <div class="user-menu-item" onclick="showProfile()">
+                                    <i class="fas fa-user"></i>
+                                    个人资料
+                                </div>
+                                <div class="user-menu-item" onclick="showSettings()">
+                                    <i class="fas fa-cog"></i>
+                                    设置
+                                </div>
+                                <div class="user-menu-divider"></div>
+                                <div class="user-menu-item" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    退出登录
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -3576,7 +4123,7 @@
                     <!-- 快速操作 - 新设计 -->
                     <div class="notes-quick-actions">
                         <!-- 主要操作卡片 -->
-                        <div class="main-action-card" onclick="createNewNote()">
+                        <div class="main-action-card" onclick="createNewNote().catch(console.error)">
                             <div class="main-action-content">
                                 <div class="main-action-icon">
                                     <i class="fas fa-plus-circle"></i>
@@ -3697,7 +4244,7 @@
                                 <button class="btn btn-secondary" onclick="deleteNoteFromEditor()" id="delete-btn" title="删除">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                <button class="btn btn-primary" onclick="saveNote()">
+                                <button class="btn btn-primary" onclick="saveNote().catch(console.error)">
                                     <i class="fas fa-save"></i>
                                     <span>保存</span>
                                 </button>
@@ -3747,7 +4294,7 @@
                     <!-- 快速操作 - 新设计 -->
                     <div class="project-quick-actions">
                         <!-- 主要操作卡片 -->
-                        <div class="main-action-card" onclick="createNewProject()">
+                        <div class="main-action-card" onclick="createNewProject().catch(console.error)">
                             <div class="main-action-content">
                                 <div class="main-action-icon">
                                     <i class="fas fa-plus-circle"></i>
@@ -3914,6 +4461,342 @@
 
                 </div>
             </div>
+
+            <!-- 设置页面 -->
+            <div class="page" id="settings">
+                <div class="container">
+                    <div class="page-header">
+                        <h1 class="page-title">系统设置</h1>
+                        <p class="page-subtitle">管理您的账户设置、数据备份和应用偏好</p>
+                    </div>
+
+                    <!-- 设置选项卡 -->
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" onclick="showSettingsTab('general')">
+                            <i class="fas fa-cog"></i>
+                            常规设置
+                        </button>
+                        <button class="settings-tab" onclick="showSettingsTab('backup')">
+                            <i class="fas fa-database"></i>
+                            数据备份
+                        </button>
+                        <button class="settings-tab" onclick="showSettingsTab('account')">
+                            <i class="fas fa-user"></i>
+                            账户管理
+                        </button>
+                    </div>
+
+                    <!-- 常规设置 -->
+                    <div class="settings-panel active" id="general-settings">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-palette"></i>
+                                    </div>
+                                    外观设置
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>主题模式</label>
+                                        <p class="setting-description">选择您喜欢的界面主题</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <select id="theme-select" onchange="changeTheme(this.value)">
+                                            <option value="light">浅色主题</option>
+                                            <option value="dark">深色主题</option>
+                                            <option value="auto">跟随系统</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>项目视图</label>
+                                        <p class="setting-description">选择项目的默认显示方式</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <select id="project-view-select" onchange="changeProjectView(this.value)">
+                                            <option value="grid">网格视图</option>
+                                            <option value="kanban">看板视图</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-bell"></i>
+                                    </div>
+                                    通知设置
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>桌面通知</label>
+                                        <p class="setting-description">允许应用发送桌面通知</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <label class="switch">
+                                            <input type="checkbox" id="desktop-notifications" onchange="toggleDesktopNotifications(this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>任务提醒</label>
+                                        <p class="setting-description">在任务截止前提醒您</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <label class="switch">
+                                            <input type="checkbox" id="task-reminders" onchange="toggleTaskReminders(this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 数据备份 -->
+                    <div class="settings-panel" id="backup-settings">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </div>
+                                    数据备份与恢复
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="backup-actions">
+                                    <div class="backup-action-card">
+                                        <div class="backup-action-content">
+                                            <div class="backup-action-icon">
+                                                <i class="fas fa-download"></i>
+                                            </div>
+                                            <div class="backup-action-text">
+                                                <h4>创建备份</h4>
+                                                <p>将您的所有数据备份到本地文件</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-primary" onclick="createManualBackup()">
+                                            立即备份
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="backup-action-card">
+                                        <div class="backup-action-content">
+                                            <div class="backup-action-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </div>
+                                            <div class="backup-action-text">
+                                                <h4>恢复数据</h4>
+                                                <p>从备份文件恢复您的数据</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-secondary" onclick="showRestoreDialog()">
+                                            恢复数据
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="backup-action-card">
+                                        <div class="backup-action-content">
+                                            <div class="backup-action-icon">
+                                                <i class="fas fa-file-export"></i>
+                                            </div>
+                                            <div class="backup-action-text">
+                                                <h4>导出数据</h4>
+                                                <p>将数据导出为JSON文件</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-outline" onclick="exportDataToFile()">
+                                            导出数据
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    备份历史
+                                </div>
+                            </div>
+                            <div class="backup-history" id="backup-history">
+                                <div class="backup-history-empty">
+                                    <i class="fas fa-archive"></i>
+                                    <p>暂无备份记录</p>
+                                    <small>创建您的第一个备份以保护数据安全</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-cogs"></i>
+                                    </div>
+                                    自动备份设置
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>启用自动备份</label>
+                                        <p class="setting-description">定期自动创建数据备份</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <label class="switch">
+                                            <input type="checkbox" id="auto-backup" onchange="toggleAutoBackup(this.checked)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>备份频率</label>
+                                        <p class="setting-description">设置自动备份的时间间隔</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <select id="backup-frequency">
+                                            <option value="daily">每日</option>
+                                            <option value="weekly">每周</option>
+                                            <option value="monthly">每月</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="setting-label">
+                                        <label>保留备份数量</label>
+                                        <p class="setting-description">最多保留的备份文件数量</p>
+                                    </div>
+                                    <div class="setting-control">
+                                        <select id="backup-retention">
+                                            <option value="5">5个</option>
+                                            <option value="10" selected>10个</option>
+                                            <option value="20">20个</option>
+                                            <option value="50">50个</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 账户管理 -->
+                    <div class="settings-panel" id="account-settings">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-user-circle"></i>
+                                    </div>
+                                    账户信息
+                                </div>
+                            </div>
+                            <div class="account-info" id="account-info">
+                                <div class="account-info-loading">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>加载账户信息...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </div>
+                                    使用统计
+                                </div>
+                            </div>
+                            <div class="usage-stats" id="usage-stats">
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-sticky-note"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="notes-count">-</div>
+                                        <div class="stat-label">笔记总数</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="projects-count">-</div>
+                                        <div class="stat-label">项目总数</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="tasks-count">-</div>
+                                        <div class="stat-label">任务总数</div>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-icon">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="tags-count">-</div>
+                                        <div class="stat-label">标签总数</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    危险操作
+                                </div>
+                            </div>
+                            <div class="danger-zone">
+                                <div class="danger-action">
+                                    <div class="danger-action-content">
+                                        <h4>清空所有数据</h4>
+                                        <p>永久删除您的所有笔记、项目和设置。此操作不可恢复！</p>
+                                    </div>
+                                    <button class="btn btn-danger" onclick="showClearDataDialog()">
+                                        清空数据
+                                    </button>
+                                </div>
+                                <div class="danger-action">
+                                    <div class="danger-action-content">
+                                        <h4>删除账户</h4>
+                                        <p>永久删除您的账户和所有相关数据。此操作不可恢复！</p>
+                                    </div>
+                                    <button class="btn btn-danger" onclick="showDeleteAccountDialog()">
+                                        删除账户
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -3921,6 +4804,754 @@
     <div id="notification-container"></div>
 
     <script>
+        // 等待 Supabase 配置加载完成
+        let supabase = null;
+        
+        // 全局状态管理
+        let currentUser = null;
+        let isAuthenticated = false;
+        
+        // 检查用户认证状态
+        async function checkAuthStatus() {
+            try {
+                // 确保 Supabase 已初始化
+                if (!supabase) {
+                    await initSupabase();
+                    supabase = getSupabaseClient();
+                }
+                
+                const user = await getCurrentUser();
+                if (user) {
+                    currentUser = user;
+                    isAuthenticated = true;
+                    updateUIForAuthenticatedUser();
+                } else {
+                    currentUser = null;
+                    isAuthenticated = false;
+                    updateUIForUnauthenticatedUser();
+                }
+            } catch (error) {
+                console.error('检查认证状态失败:', error);
+                currentUser = null;
+                isAuthenticated = false;
+                updateUIForUnauthenticatedUser();
+            }
+        }
+
+        // 获取当前登录账户信息
+        function getCurrentUserInfo() {
+            if (isAuthenticated && currentUser) {
+                return {
+                    email: currentUser.email,
+                    id: currentUser.id,
+                    created_at: currentUser.created_at,
+                    last_sign_in_at: currentUser.last_sign_in_at,
+                    email_confirmed_at: currentUser.email_confirmed_at
+                };
+            } else {
+                return null;
+            }
+        }
+
+        // 在控制台显示当前用户信息（调试用）
+        function showCurrentUser() {
+            const userInfo = getCurrentUserInfo();
+            if (userInfo) {
+                console.log('当前登录账户信息:', userInfo);
+                console.log('邮箱:', userInfo.email);
+                console.log('用户ID:', userInfo.id);
+                console.log('注册时间:', new Date(userInfo.created_at).toLocaleString());
+                console.log('最后登录时间:', userInfo.last_sign_in_at ? new Date(userInfo.last_sign_in_at).toLocaleString() : '未知');
+            } else {
+                console.log('当前没有用户登录');
+            }
+            return userInfo;
+        }
+        
+        // 更新已认证用户的UI
+        function updateUIForAuthenticatedUser() {
+            // 隐藏登录/注册按钮
+            const unauthenticatedUI = document.getElementById('unauthenticated-ui');
+            if (unauthenticatedUI) {
+                unauthenticatedUI.style.display = 'none';
+            }
+            
+            // 显示用户信息
+            const authenticatedUI = document.getElementById('authenticated-ui');
+            if (authenticatedUI) {
+                authenticatedUI.style.display = 'flex';
+                
+                // 更新用户邮箱显示
+                const userEmail = document.getElementById('user-email');
+                if (userEmail && currentUser) {
+                    userEmail.textContent = currentUser.email;
+                }
+                
+                // 更新用户头像显示
+                const userInitial = document.getElementById('user-initial');
+                if (userInitial && currentUser) {
+                    userInitial.textContent = currentUser.email.charAt(0).toUpperCase();
+                }
+            }
+            
+            console.log('用户已登录:', currentUser.email);
+        }
+        
+        // 更新未认证用户的UI
+        function updateUIForUnauthenticatedUser() {
+            // 显示登录/注册按钮
+            const unauthenticatedUI = document.getElementById('unauthenticated-ui');
+            if (unauthenticatedUI) {
+                unauthenticatedUI.style.display = 'flex';
+            }
+            
+            // 隐藏用户信息
+            const authenticatedUI = document.getElementById('authenticated-ui');
+            if (authenticatedUI) {
+                authenticatedUI.style.display = 'none';
+            }
+            
+            console.log('用户未登录');
+        }
+        
+        // 显示个人资料
+        function showProfile() {
+            showNotification('个人资料功能开发中...', 'info');
+            toggleUserMenu(); // 关闭菜单
+        }
+        
+        // 显示设置页面
+        function showSettings() {
+            showPage('settings');
+            toggleUserMenu(); // 关闭菜单
+            loadSettingsData(); // 加载设置数据
+        }
+
+        // ==================== 设置页面功能 ====================
+        
+        // 显示设置选项卡
+        function showSettingsTab(tabName) {
+            // 移除所有选项卡的活动状态
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.settings-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // 激活选中的选项卡
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-settings').classList.add('active');
+        }
+
+        // 加载设置数据
+        function loadSettingsData() {
+            loadGeneralSettings();
+            loadAccountInfo();
+            loadUsageStats();
+            loadBackupHistory();
+        }
+
+        // 加载常规设置
+        function loadGeneralSettings() {
+            const theme = localStorage.getItem('theme') || 'light';
+            const projectView = localStorage.getItem('projectView') || 'grid';
+            const desktopNotifications = localStorage.getItem('desktopNotifications') === 'true';
+            const taskReminders = localStorage.getItem('taskReminders') === 'true';
+            
+            document.getElementById('theme-select').value = theme;
+            document.getElementById('project-view-select').value = projectView;
+            document.getElementById('desktop-notifications').checked = desktopNotifications;
+            document.getElementById('task-reminders').checked = taskReminders;
+        }
+
+        // 更改主题
+        function changeTheme(theme) {
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+            showNotification('主题已更新', 'success');
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                theme = prefersDark ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        // 更改项目视图
+        function changeProjectView(view) {
+            localStorage.setItem('projectView', view);
+            showNotification('项目视图已更新', 'success');
+            // 如果当前在项目页面，刷新视图
+            if (document.getElementById('projects').classList.contains('active')) {
+                loadProjects();
+            }
+        }
+
+        // 切换桌面通知
+        function toggleDesktopNotifications(enabled) {
+            localStorage.setItem('desktopNotifications', enabled);
+            if (enabled) {
+                requestNotificationPermission();
+            }
+            showNotification(enabled ? '桌面通知已启用' : '桌面通知已禁用', 'success');
+        }
+
+        // 切换任务提醒
+        function toggleTaskReminders(enabled) {
+            localStorage.setItem('taskReminders', enabled);
+            showNotification(enabled ? '任务提醒已启用' : '任务提醒已禁用', 'success');
+        }
+
+        // 请求通知权限
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification('通知权限已授予', 'success');
+                    } else {
+                        showNotification('通知权限被拒绝', 'warning');
+                    }
+                });
+            }
+        }
+
+        // 加载账户信息
+        function loadAccountInfo() {
+            const accountInfoDiv = document.getElementById('account-info');
+            
+            if (currentUser) {
+                accountInfoDiv.innerHTML = `
+                    <div class="account-info-content">
+                        <div class="account-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="account-details">
+                            <div class="account-email">${currentUser.email}</div>
+                            <div class="account-id">用户ID: ${currentUser.id.substring(0, 8)}...</div>
+                            <div class="account-created">注册时间: ${new Date(currentUser.created_at).toLocaleDateString('zh-CN')}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                accountInfoDiv.innerHTML = `
+                    <div class="account-info-empty">
+                        <i class="fas fa-user-slash"></i>
+                        <p>未登录</p>
+                        <button class="btn btn-primary" onclick="showLoginModal()">立即登录</button>
+                    </div>
+                `;
+            }
+        }
+
+        // 加载使用统计
+        async function loadUsageStats() {
+            try {
+                const stats = await getUsageStats();
+                document.getElementById('notes-count').textContent = stats.notes || 0;
+                document.getElementById('projects-count').textContent = stats.projects || 0;
+                document.getElementById('tasks-count').textContent = stats.tasks || 0;
+                document.getElementById('tags-count').textContent = stats.tags || 0;
+            } catch (error) {
+                console.error('加载使用统计失败:', error);
+                document.querySelectorAll('.stat-value').forEach(el => {
+                    el.textContent = '-';
+                });
+            }
+        }
+
+        // 获取使用统计
+        async function getUsageStats() {
+            if (!isAuthenticated) {
+                return { notes: 0, projects: 0, tasks: 0, tags: 0 };
+            }
+
+            try {
+                const [notesResult, projectsResult, tagsResult] = await Promise.all([
+                    supabase.from('notes').select('id', { count: 'exact' }).eq('user_id', currentUser.id),
+                    supabase.from('projects').select('id', { count: 'exact' }).eq('user_id', currentUser.id),
+                    supabase.from('tags').select('id', { count: 'exact' }).eq('user_id', currentUser.id)
+                ]);
+
+                // 计算任务总数（来自所有项目）
+                const tasksResult = await supabase
+                    .from('projects')
+                    .select('tasks')
+                    .eq('user_id', currentUser.id);
+
+                let totalTasks = 0;
+                if (tasksResult.data) {
+                    tasksResult.data.forEach(project => {
+                        if (project.tasks && Array.isArray(project.tasks)) {
+                            totalTasks += project.tasks.length;
+                        }
+                    });
+                }
+
+                return {
+                    notes: notesResult.count || 0,
+                    projects: projectsResult.count || 0,
+                    tasks: totalTasks,
+                    tags: tagsResult.count || 0
+                };
+            } catch (error) {
+                console.error('获取使用统计失败:', error);
+                return { notes: 0, projects: 0, tasks: 0, tags: 0 };
+            }
+        }
+
+        // ==================== 备份恢复功能 ====================
+        
+        // 创建手动备份
+        async function createManualBackup() {
+            if (!window.backupRestoreTool) {
+                showNotification('备份工具未初始化', 'error');
+                return;
+            }
+
+            try {
+                showNotification('正在创建备份...', 'info');
+                await window.backupRestoreTool.createBackup();
+                showNotification('备份创建成功', 'success');
+                loadBackupHistory();
+            } catch (error) {
+                console.error('创建备份失败:', error);
+                showNotification('备份创建失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示恢复对话框
+        function showRestoreDialog() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    try {
+                        showNotification('正在恢复数据...', 'info');
+                        await window.backupRestoreTool.importFromFile(file);
+                        showNotification('数据恢复成功', 'success');
+                        // 刷新页面数据
+                        location.reload();
+                    } catch (error) {
+                        console.error('数据恢复失败:', error);
+                        showNotification('数据恢复失败: ' + error.message, 'error');
+                    }
+                }
+            };
+            input.click();
+        }
+
+        // 导出数据到文件
+        async function exportDataToFile() {
+            if (!window.backupRestoreTool) {
+                showNotification('备份工具未初始化', 'error');
+                return;
+            }
+
+            try {
+                showNotification('正在导出数据...', 'info');
+                await window.backupRestoreTool.exportToFile();
+                showNotification('数据导出成功', 'success');
+            } catch (error) {
+                console.error('数据导出失败:', error);
+                showNotification('数据导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 加载备份历史
+        function loadBackupHistory() {
+            const historyDiv = document.getElementById('backup-history');
+            const backups = JSON.parse(localStorage.getItem('backup_history') || '[]');
+            
+            if (backups.length === 0) {
+                historyDiv.innerHTML = `
+                    <div class="backup-history-empty">
+                        <i class="fas fa-archive"></i>
+                        <p>暂无备份记录</p>
+                        <small>创建您的第一个备份以保护数据安全</small>
+                    </div>
+                `;
+                return;
+            }
+
+            historyDiv.innerHTML = backups.map(backup => `
+                <div class="backup-item">
+                    <div class="backup-item-info">
+                        <div class="backup-item-name">${backup.name}</div>
+                        <div class="backup-item-date">${new Date(backup.timestamp).toLocaleString('zh-CN')}</div>
+                        <div class="backup-item-size">${formatFileSize(backup.size)}</div>
+                    </div>
+                    <div class="backup-item-actions">
+                        <button class="btn btn-sm btn-outline" onclick="restoreFromBackup('${backup.id}')">
+                            <i class="fas fa-undo"></i>
+                            恢复
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteBackup('${backup.id}')">
+                            <i class="fas fa-trash"></i>
+                            删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 从备份恢复
+        async function restoreFromBackup(backupId) {
+            if (!confirm('确定要从此备份恢复数据吗？这将覆盖当前所有数据！')) {
+                return;
+            }
+
+            try {
+                showNotification('正在恢复数据...', 'info');
+                await window.backupRestoreTool.restoreFromBackup(backupId);
+                showNotification('数据恢复成功', 'success');
+                location.reload();
+            } catch (error) {
+                console.error('数据恢复失败:', error);
+                showNotification('数据恢复失败: ' + error.message, 'error');
+            }
+        }
+
+        // 删除备份
+        function deleteBackup(backupId) {
+            if (!confirm('确定要删除此备份吗？')) {
+                return;
+            }
+
+            try {
+                window.backupRestoreTool.deleteBackup(backupId);
+                showNotification('备份已删除', 'success');
+                loadBackupHistory();
+            } catch (error) {
+                console.error('删除备份失败:', error);
+                showNotification('删除备份失败: ' + error.message, 'error');
+            }
+        }
+
+        // 切换自动备份
+        function toggleAutoBackup(enabled) {
+            localStorage.setItem('autoBackup', enabled);
+            showNotification(enabled ? '自动备份已启用' : '自动备份已禁用', 'success');
+        }
+
+        // ==================== 危险操作 ====================
+        
+        // 显示清空数据对话框
+        function showClearDataDialog() {
+            if (!confirm('⚠️ 警告：此操作将永久删除您的所有数据！\n\n包括：\n- 所有笔记\n- 所有项目\n- 所有标签\n- 所有设置\n\n此操作不可恢复！确定要继续吗？')) {
+                return;
+            }
+
+            if (!confirm('请再次确认：您真的要清空所有数据吗？\n\n建议在清空前先创建备份。')) {
+                return;
+            }
+
+            clearAllData();
+        }
+
+        // 清空所有数据
+        async function clearAllData() {
+            try {
+                showNotification('正在清空数据...', 'info');
+                
+                if (window.backupRestoreTool) {
+                    await window.backupRestoreTool.clearUserData();
+                }
+                
+                showNotification('所有数据已清空', 'success');
+                
+                // 延迟刷新页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } catch (error) {
+                console.error('清空数据失败:', error);
+                showNotification('清空数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 显示删除账户对话框
+        function showDeleteAccountDialog() {
+            if (!confirm('⚠️ 警告：此操作将永久删除您的账户和所有相关数据！\n\n此操作不可恢复！确定要继续吗？')) {
+                return;
+            }
+
+            const email = prompt('请输入您的邮箱地址以确认删除账户：');
+            if (!email || email !== currentUser.email) {
+                showNotification('邮箱地址不匹配，操作已取消', 'warning');
+                return;
+            }
+
+            deleteAccount();
+        }
+
+        // 删除账户
+        async function deleteAccount() {
+            try {
+                showNotification('正在删除账户...', 'info');
+                
+                // 首先清空用户数据
+                if (window.backupRestoreTool) {
+                    await window.backupRestoreTool.clearUserData();
+                }
+                
+                // 注销用户
+                await supabase.auth.signOut();
+                
+                showNotification('账户已删除', 'success');
+                
+                // 重定向到登录页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } catch (error) {
+                console.error('删除账户失败:', error);
+                showNotification('删除账户失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 设置认证状态监听器
+        async function setupAuthListener() {
+            // 确保 Supabase 已初始化
+            await initSupabase();
+            const supabaseClient = getSupabaseClient();
+            
+            if (!supabaseClient) {
+                console.error('Supabase 客户端初始化失败，无法设置认证监听器');
+                return;
+            }
+            
+            // 监听认证状态变化
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN') {
+                currentUser = session.user;
+                isAuthenticated = true;
+                
+                try {
+                    // 检查是否需要数据迁移
+                    if (window.dataMigrationTool && window.dataMigrationTool.needsMigration()) {
+                        const shouldMigrate = confirm('检测到本地数据，是否要将其迁移到云端？\n\n点击"确定"迁移数据，点击"取消"跳过迁移。');
+                        
+                        if (shouldMigrate) {
+                            try {
+                                await window.dataMigrationTool.migrate();
+                                showNotification('数据迁移完成！', 'success');
+                            } catch (migrationError) {
+                                console.error('数据迁移失败:', migrationError);
+                                showNotification('数据迁移失败，将继续使用云端数据', 'warning');
+                            }
+                        } else {
+                            // 用户选择跳过迁移，标记为已完成避免重复提示
+                            localStorage.setItem('cogninote-migration-status', 'skipped');
+                        }
+                    }
+                    
+                    // 加载用户数据
+                    await loadUserData();
+                    updateUIForAuthenticatedUser();
+                    console.log('用户登录成功，数据加载完成');
+                } catch (error) {
+                    console.error('加载用户数据失败:', error);
+                    showNotification('加载用户数据失败', 'error');
+                }
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                isAuthenticated = false;
+                
+                // 清空应用状态
+                AppState.notes = [];
+                AppState.projects = [];
+                AppState.tags = [];
+                AppState.currentNote = null;
+                AppState.currentProject = null;
+                
+                updateUIForUnauthenticatedUser();
+                console.log('用户已登出');
+            }
+            });
+        }
+
+        // 认证相关函数
+        function showLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.classList.add('show');
+            document.getElementById('loginEmail').focus();
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.classList.remove('show');
+            // 清空表单
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function showRegisterModal() {
+            const modal = document.getElementById('registerModal');
+            modal.classList.add('show');
+            document.getElementById('registerEmail').focus();
+        }
+
+        function closeRegisterModal() {
+            const modal = document.getElementById('registerModal');
+            modal.classList.remove('show');
+            // 清空表单
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+
+        function switchToRegister() {
+            closeLoginModal();
+            showRegisterModal();
+        }
+
+        function switchToLogin() {
+            closeRegisterModal();
+            showLoginModal();
+        }
+
+        // 重新发送确认邮件
+        async function resendConfirmation() {
+            const email = document.getElementById('loginEmail').value.trim();
+            
+            if (!email) {
+                showNotification('请先输入邮箱地址', 'error');
+                return;
+            }
+
+            try {
+                const { error } = await supabase.auth.resend({
+                    type: 'signup',
+                    email: email
+                });
+
+                if (error) {
+                    showNotification('发送失败：' + error.message, 'error');
+                } else {
+                    showNotification('确认邮件已重新发送，请检查您的邮箱', 'success');
+                }
+            } catch (error) {
+                showNotification('发送过程中发生错误', 'error');
+                console.error('Resend confirmation error:', error);
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showNotification('请填写完整的登录信息', 'error');
+                return;
+            }
+
+            try {
+                // 使用 Supabase 配置文件中的登录函数
+                const result = await signInUser(email, password);
+                
+                if (result.success) {
+                    showNotification('登录成功！', 'success');
+                    closeLoginModal();
+                    
+                    // 登录成功后的处理已在 onUserSignedIn 中完成
+                } else {
+                    if (result.error.includes('Email not confirmed')) {
+                        showNotification('邮箱未确认，请检查您的邮箱并点击确认链接，或联系管理员', 'error');
+                    } else {
+                        showNotification('登录失败：' + result.error, 'error');
+                    }
+                }
+            } catch (error) {
+                showNotification('登录过程中发生错误', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function handleRegister() {
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!email || !password || !confirmPassword) {
+                showNotification('请填写完整的注册信息', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showNotification('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showNotification('密码长度至少为6位', 'error');
+                return;
+            }
+
+            try {
+                // 使用 Supabase 配置文件中的注册函数
+                const result = await signUpUser(email, password);
+                
+                if (result.success) {
+                    showNotification('注册成功！请检查邮箱验证邮件', 'success');
+                    closeRegisterModal();
+                } else {
+                    showNotification('注册失败：' + result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('注册过程中发生错误', 'error');
+                console.error('Register error:', error);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                // 使用 Supabase 配置文件中的登出函数
+                const result = await signOutUser();
+                
+                if (result.success) {
+                    showNotification('已成功登出', 'success');
+                    // 登出成功后的处理已在 onUserSignedOut 中完成
+                } else {
+                    showNotification('登出失败：' + result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('登出过程中发生错误', 'error');
+                console.error('Logout error:', error);
+            }
+        }
+
+        function toggleUserMenu() {
+            const userMenu = document.querySelector('.user-menu');
+            if (userMenu) {
+                userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // 点击其他地方关闭用户菜单
+        document.addEventListener('click', function(e) {
+            const userMenu = document.querySelector('.user-menu');
+            const userAvatar = document.querySelector('.user-avatar');
+            
+            if (userMenu && userAvatar && !userAvatar.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.style.display = 'none';
+            }
+        });
+
         // 自定义模态对话框功能
         let modalResolve = null;
         
@@ -4068,13 +5699,13 @@
         }
 
         // 快速操作函数
-        function createNewNoteAndNavigate() {
-            createNewNote();
+        async function createNewNoteAndNavigate() {
+            await createNewNote();
             navigateTo('notes');
         }
 
-        function createNewProjectAndNavigate() {
-            createNewProject();
+        async function createNewProjectAndNavigate() {
+            await createNewProject();
             navigateTo('projects');
         }
 
@@ -4199,7 +5830,7 @@
             }
         }
 
-        function createNewNote() {
+        async function createNewNote() {
             const note = {
                 id: Date.now().toString(),
                 title: '新建笔记',
@@ -4210,23 +5841,30 @@
                 isFavorite: false
             };
             
-            AppState.notes.unshift(note);
-            AppState.currentNote = note;
-            
-            // 如果在笔记页面，直接打开编辑器
-            if (AppState.currentPage === 'notes') {
-                openNoteEditor(note.id);
-            } else {
-                // 如果不在笔记页面，先切换到笔记页面再打开编辑器
-                navigateTo('notes');
-                setTimeout(() => {
+            try {
+                // 保存到数据库
+                await saveNoteToDatabase(note);
+                
+                AppState.notes.unshift(note);
+                AppState.currentNote = note;
+                
+                // 如果在笔记页面，直接打开编辑器
+                if (AppState.currentPage === 'notes') {
                     openNoteEditor(note.id);
-                }, 100);
+                } else {
+                    // 如果不在笔记页面，先切换到笔记页面再打开编辑器
+                    navigateTo('notes');
+                    setTimeout(() => {
+                        openNoteEditor(note.id);
+                    }, 100);
+                }
+                
+                showNotification('新笔记已创建', 'success');
+                updateDashboard();
+            } catch (error) {
+                console.error('创建笔记失败:', error);
+                showNotification('创建笔记失败', 'error');
             }
-            
-            showNotification('新笔记已创建', 'success');
-            saveAppState();
-            updateDashboard();
         }
 
         function loadNotes() {
@@ -4249,7 +5887,7 @@
                 notesList.innerHTML = `
                     <div style="text-align: center; color: var(--text-secondary); padding: var(--space-lg);">
                         暂无笔记<br>
-                        <span style="color: var(--primary-color); cursor: pointer;" onclick="createNewNote()">创建第一个笔记</span>
+                        <span style="color: var(--primary-color); cursor: pointer;" onclick="createNewNote().catch(console.error)">创建第一个笔记</span>
                     </div>
                 `;
                 return;
@@ -4314,7 +5952,7 @@
             updateWordCount();
         }
 
-        function saveNote() {
+        async function saveNote() {
             if (!AppState.currentNote) return;
             
             const title = document.getElementById('note-title').value.trim();
@@ -4324,33 +5962,48 @@
             AppState.currentNote.content = content;
             AppState.currentNote.updatedAt = new Date();
             
-            // 更新列表显示
-            loadNotes();
-            
             // 显示保存状态
             const saveStatus = document.getElementById('save-status');
             saveStatus.textContent = '保存中...';
-            setTimeout(() => {
-                saveStatus.textContent = '已保存';
-            }, 500);
             
-            saveAppState();
-            updateDashboard();
+            try {
+                // 保存到数据库
+                await saveNoteToDatabase(AppState.currentNote);
+                
+                // 更新列表显示
+                loadNotes();
+                
+                saveStatus.textContent = '已保存';
+                updateDashboard();
+            } catch (error) {
+                console.error('保存笔记失败:', error);
+                saveStatus.textContent = '保存失败';
+                showNotification('保存笔记失败', 'error');
+            }
         }
 
-        function deleteNote(noteId) {
+        async function deleteNote(noteId) {
             if (confirm('确定要删除这个笔记吗？')) {
-                AppState.notes = AppState.notes.filter(n => n.id !== noteId);
-                if (AppState.currentNote && AppState.currentNote.id === noteId) {
-                    AppState.currentNote = null;
-                    document.getElementById('note-title').value = '';
-                    document.getElementById('note-content').value = '';
-                    document.getElementById('note-tags').innerHTML = '';
+                try {
+                    // 从数据库删除
+                    await deleteNoteFromDatabase(noteId);
+                    
+                    // 从本地状态删除
+                    AppState.notes = AppState.notes.filter(n => n.id !== noteId);
+                    if (AppState.currentNote && AppState.currentNote.id === noteId) {
+                        AppState.currentNote = null;
+                        document.getElementById('note-title').value = '';
+                        document.getElementById('note-content').value = '';
+                        document.getElementById('note-tags').innerHTML = '';
+                    }
+                    
+                    loadNotes();
+                    showNotification('笔记已删除', 'success');
+                    updateDashboard();
+                } catch (error) {
+                    console.error('删除笔记失败:', error);
+                    showNotification('删除笔记失败', 'error');
                 }
-                loadNotes();
-                showNotification('笔记已删除', 'success');
-                saveAppState();
-                updateDashboard();
             }
         }
 
@@ -4360,16 +6013,16 @@
                 if (!AppState.currentNote.tags.includes(tag)) {
                     AppState.currentNote.tags.push(tag);
                     selectNote(AppState.currentNote.id);
-                    saveNote();
+                    await saveNote();
                 }
             }
         }
 
-        function removeTag(tag) {
+        async function removeTag(tag) {
             if (AppState.currentNote) {
                 AppState.currentNote.tags = AppState.currentNote.tags.filter(t => t !== tag);
                 selectNote(AppState.currentNote.id);
-                saveNote();
+                await saveNote();
             }
         }
 
@@ -4516,7 +6169,7 @@
                     <div class="notes-empty">
                         <i class="fas fa-file-alt"></i>
                         <p>暂无笔记</p>
-                        <button class="btn btn-primary" onclick="createNewNote()">创建第一个笔记</button>
+                        <button class="btn btn-primary" onclick="createNewNote().catch(console.error)">创建第一个笔记</button>
                     </div>
                 `;
             } else {
@@ -4565,7 +6218,7 @@
             switch(tabName) {
                 case 'all-notes':
                     filteredNotes = AppState.notes;
-                    emptyMessage = '暂无笔记，<span onclick="createNewNote()" style="color: var(--primary-color); cursor: pointer;">创建第一个笔记</span>';
+                    emptyMessage = '暂无笔记，<span onclick="createNewNote().catch(console.error)" style="color: var(--primary-color); cursor: pointer;">创建第一个笔记</span>';
                     break;
                 case 'favorites':
                     filteredNotes = AppState.notes.filter(note => note.isFavorite);
@@ -4654,10 +6307,10 @@
             }, 350);
         }
 
-        function closeNoteEditor() {
+        async function closeNoteEditor() {
             // 保存当前笔记
             if (AppState.currentNote) {
-                saveNote();
+                await saveNote();
             }
             
             // 开始关闭动画
@@ -4879,13 +6532,20 @@
                     tasks: []
                 };
                 
-                AppState.projects.push(project);
-                saveAppState();
-                updateDashboard();
-                
-                // 直接打开项目编辑器
-                openProject(project);
-                showNotification('项目创建成功，请完善项目信息', 'success');
+                try {
+                    // 保存到数据库
+                    await saveProjectToDatabase(project);
+                    
+                    AppState.projects.push(project);
+                    updateDashboard();
+                    
+                    // 直接打开项目编辑器
+                    openProject(project);
+                    showNotification('项目创建成功，请完善项目信息', 'success');
+                } catch (error) {
+                    console.error('创建项目失败:', error);
+                    showNotification('创建项目失败', 'error');
+                }
             }
         }
 
@@ -4960,7 +6620,7 @@
                 projectsGrid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: var(--space-xl);">
                         暂无项目<br>
-                        <span style="color: var(--primary-color); cursor: pointer;" onclick="createNewProject()">创建第一个项目</span>
+                        <span style="color: var(--primary-color); cursor: pointer;" onclick="createNewProject().catch(console.error)">创建第一个项目</span>
                     </div>
                 `;
                 return;
@@ -5059,13 +6719,21 @@
             }
         }
 
-        function deleteProject(projectId) {
+        async function deleteProject(projectId) {
             if (confirm('确定要删除这个项目吗？')) {
-                AppState.projects = AppState.projects.filter(p => p.id !== projectId);
-                loadProjects();
-                showNotification('项目已删除', 'success');
-                saveAppState();
-                updateDashboard();
+                try {
+                    // 从数据库删除
+                    await deleteProjectFromDatabase(projectId);
+                    
+                    // 从本地状态删除
+                    AppState.projects = AppState.projects.filter(p => p.id !== projectId);
+                    loadProjects();
+                    showNotification('项目已删除', 'success');
+                    updateDashboard();
+                } catch (error) {
+                    console.error('删除项目失败:', error);
+                    showNotification('删除项目失败', 'error');
+                }
             }
         }
 
@@ -5179,10 +6847,10 @@
                                 ${formatDate(project.updatedAt)}
                             </div>
                             <div style="display: flex; gap: var(--space-sm);">
-                                <button class="btn btn-sm btn-secondary" onclick="editProject('${project.id}')">
+                                <button class="btn btn-sm btn-secondary" onclick="editProject('${project.id}').catch(console.error)">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-secondary" onclick="deleteProject('${project.id}')">
+                                <button class="btn btn-sm btn-secondary" onclick="deleteProject('${project.id}').catch(console.error)">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -5474,7 +7142,7 @@
             textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
             
             updateWordCount();
-            saveNote();
+            saveNote().catch(console.error);
         }
 
         function insertList() {
@@ -5487,7 +7155,7 @@
             textarea.setSelectionRange(start + listItem.length, start + listItem.length);
             
             updateWordCount();
-            saveNote();
+            saveNote().catch(console.error);
         }
 
         async function insertLink() {
@@ -5504,7 +7172,7 @@
                 textarea.setSelectionRange(start + link.length, start + link.length);
                 
                 updateWordCount();
-                saveNote();
+                await saveNote();
             }
         }
 
@@ -5624,46 +7292,234 @@
         }
 
         // 数据持久化
-        function saveAppState() {
+        async function saveAppState() {
             try {
-                localStorage.setItem('cogninote-app-state', JSON.stringify(AppState));
+                // 检查Supabase是否已正确初始化
+                const supabaseClient = getSupabaseClient();
+                if (!supabaseClient) {
+                    // Supabase未初始化，只保存到localStorage
+                    localStorage.setItem('cogninote-app-state', JSON.stringify(AppState));
+                    return;
+                }
+                
+                // 如果用户已登录，同步到数据库
+                const user = getCurrentUser();
+                if (user) {
+                    if (navigator.onLine) {
+                        // 在线时直接同步到数据库
+                        await syncAppStateToDatabase();
+                    } else {
+                        // 离线时保存到离线缓存
+                        if (window.offlineCacheManager) {
+                            // 保存所有笔记到离线缓存
+                            AppState.notes.forEach(note => {
+                                window.offlineCacheManager.saveToCache('note', note, 'update');
+                            });
+                            
+                            // 保存所有项目到离线缓存
+                            AppState.projects.forEach(project => {
+                                window.offlineCacheManager.saveToCache('project', project, 'update');
+                            });
+                        }
+                        
+                        // 同时保存到localStorage作为备份
+                        localStorage.setItem('cogninote-app-state', JSON.stringify(AppState));
+                        showNotification('离线模式：数据已保存到本地缓存', 'info');
+                    }
+                } else {
+                    // 未登录时仍保存到localStorage作为备份
+                    localStorage.setItem('cogninote-app-state', JSON.stringify(AppState));
+                }
             } catch (error) {
                 console.error('保存数据失败:', error);
                 showNotification('数据保存失败', 'error');
+                
+                // 失败时保存到离线缓存和localStorage作为备份
+                try {
+                    if (window.offlineCacheManager) {
+                        AppState.notes.forEach(note => {
+                            window.offlineCacheManager.saveToCache('note', note, 'update');
+                        });
+                        AppState.projects.forEach(project => {
+                            window.offlineCacheManager.saveToCache('project', project, 'update');
+                        });
+                    }
+                    localStorage.setItem('cogninote-app-state', JSON.stringify(AppState));
+                } catch (localError) {
+                    console.error('本地保存也失败:', localError);
+                }
             }
         }
 
-        function loadAppState() {
+        async function loadAppState() {
             try {
-                const saved = localStorage.getItem('cogninote-app-state');
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    AppState.notes = state.notes || [];
-                    AppState.projects = state.projects || [];
-                    AppState.tasks = state.tasks || [];
-                    AppState.currentTheme = state.currentTheme || 'light';
-                    AppState.isKanbanView = state.isKanbanView !== undefined ? state.isKanbanView : true;
-                    
-                    // 恢复主题
-                    setTheme(AppState.currentTheme);
+                const user = getCurrentUser();
+                if (user) {
+                    if (navigator.onLine) {
+                        // 在线时从数据库加载
+                        await loadUserData();
+                        
+                        // 启动实时监听器
+                        if (typeof setupRealtimeListeners === 'function') {
+                            setupRealtimeListeners();
+                        }
+                    } else {
+                        // 离线时从离线缓存加载
+                        if (window.offlineCacheManager) {
+                            const cachedNotes = window.offlineCacheManager.loadFromCache('note');
+                            const cachedProjects = window.offlineCacheManager.loadFromCache('project');
+                            
+                            // 合并缓存数据
+                            AppState.notes = cachedNotes.map(note => ({
+                                id: note.id,
+                                title: note.title,
+                                content: note.content,
+                                tags: note.tags || [],
+                                createdAt: note.createdAt,
+                                updatedAt: note.updatedAt,
+                                projectId: note.projectId
+                            }));
+                            
+                            AppState.projects = cachedProjects.map(project => ({
+                                id: project.id,
+                                name: project.name,
+                                description: project.description,
+                                status: project.status,
+                                priority: project.priority,
+                                tags: project.tags || [],
+                                tasks: project.tasks || [],
+                                members: project.members || [],
+                                createdAt: project.createdAt,
+                                updatedAt: project.updatedAt
+                            }));
+                        }
+                        
+                        // 同时尝试从localStorage加载作为备份
+                        const saved = localStorage.getItem('cogninote-app-state');
+                        if (saved) {
+                            const state = JSON.parse(saved);
+                            
+                            // 如果缓存为空，使用localStorage数据
+                            if (AppState.notes.length === 0) {
+                                AppState.notes = state.notes || [];
+                            }
+                            if (AppState.projects.length === 0) {
+                                AppState.projects = state.projects || [];
+                            }
+                            
+                            AppState.tasks = state.tasks || [];
+                            AppState.currentTheme = state.currentTheme || 'light';
+                            AppState.isKanbanView = state.isKanbanView !== undefined ? state.isKanbanView : true;
+                        }
+                        
+                        showNotification('离线模式：已加载本地缓存数据', 'info');
+                    }
+                } else {
+                    // 未登录，从localStorage加载
+                    const saved = localStorage.getItem('cogninote-app-state');
+                    if (saved) {
+                        const state = JSON.parse(saved);
+                        AppState.notes = state.notes || [];
+                        AppState.projects = state.projects || [];
+                        AppState.tasks = state.tasks || [];
+                        AppState.currentTheme = state.currentTheme || 'light';
+                        AppState.isKanbanView = state.isKanbanView !== undefined ? state.isKanbanView : true;
+                    }
                 }
+                
+                // 恢复主题
+                setTheme(AppState.currentTheme || 'light');
+                
             } catch (error) {
                 console.error('加载数据失败:', error);
                 showNotification('数据加载失败', 'error');
+                
+                // 失败时尝试从离线缓存和localStorage加载
+                try {
+                    // 先尝试离线缓存
+                    if (window.offlineCacheManager) {
+                        const cachedNotes = window.offlineCacheManager.loadFromCache('note');
+                        const cachedProjects = window.offlineCacheManager.loadFromCache('project');
+                        
+                        if (cachedNotes.length > 0 || cachedProjects.length > 0) {
+                            AppState.notes = cachedNotes.map(note => ({
+                                id: note.id,
+                                title: note.title,
+                                content: note.content,
+                                tags: note.tags || [],
+                                createdAt: note.createdAt,
+                                updatedAt: note.updatedAt,
+                                projectId: note.projectId
+                            }));
+                            
+                            AppState.projects = cachedProjects.map(project => ({
+                                id: project.id,
+                                name: project.name,
+                                description: project.description,
+                                status: project.status,
+                                priority: project.priority,
+                                tags: project.tags || [],
+                                tasks: project.tasks || [],
+                                members: project.members || [],
+                                createdAt: project.createdAt,
+                                updatedAt: project.updatedAt
+                            }));
+                        }
+                    }
+                    
+                    // 再尝试localStorage
+                    const saved = localStorage.getItem('cogninote-app-state');
+                    if (saved) {
+                        const state = JSON.parse(saved);
+                        
+                        if (AppState.notes.length === 0) {
+                            AppState.notes = state.notes || [];
+                        }
+                        if (AppState.projects.length === 0) {
+                            AppState.projects = state.projects || [];
+                        }
+                        
+                        AppState.tasks = state.tasks || [];
+                        AppState.currentTheme = state.currentTheme || 'light';
+                        AppState.isKanbanView = state.isKanbanView !== undefined ? state.isKanbanView : true;
+                    }
+                    
+                    setTheme(AppState.currentTheme || 'light');
+                    
+                } catch (localError) {
+                    console.error('本地数据加载也失败:', localError);
+                }
             }
         }
 
         // 事件监听
-        document.addEventListener('DOMContentLoaded', function() {
-            // 加载应用状态
-            loadAppState();
-            
-            // 初始化仪表板
-            updateDashboard();
-            
-            // 初始化笔记概览
-            updateNotesTabCounts();
-            updateNotesOverviewContent('all-notes');
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // 初始化 Supabase 和设置认证监听器
+                await setupAuthListener();
+                
+                // 检查认证状态
+                await checkAuthStatus();
+                
+                // 初始化离线缓存管理器
+                if (typeof OfflineCacheManager !== 'undefined') {
+                    window.offlineCacheManager = new OfflineCacheManager();
+                    console.log('离线缓存管理器已初始化');
+                }
+                
+                // 加载应用状态
+                await loadAppState();
+                
+                // 初始化仪表板
+                updateDashboard();
+                
+                // 初始化笔记概览
+                updateNotesTabCounts();
+                updateNotesOverviewContent('all-notes');
+            } catch (error) {
+                console.error('应用初始化失败:', error);
+                showNotification('应用初始化失败', 'error');
+            }
             
             // 笔记编辑器事件
             const noteTitle = document.getElementById('note-title');
@@ -5697,7 +7553,7 @@
                 if (e.ctrlKey && e.key === 'n') {
                     e.preventDefault();
                     if (AppState.currentPage === 'notes') {
-                        createNewNote();
+                        createNewNote().catch(console.error);
                     }
                 }
                 
@@ -5705,7 +7561,7 @@
                 if (e.ctrlKey && e.key === 's') {
                     e.preventDefault();
                     if (AppState.currentPage === 'notes') {
-                        saveNote();
+                        saveNote().catch(console.error);
                     }
                 }
                 
@@ -5752,7 +7608,7 @@
             // 自动保存
             setInterval(function() {
                 if (AppState.currentNote && AppState.currentPage === 'notes') {
-                    saveNote();
+                    saveNote().catch(console.error);
                 }
             }, 30000); // 每30秒自动保存
             
@@ -6327,7 +8183,7 @@
         }
 
         // 保存项目更改
-        function saveProjectChanges() {
+        async function saveProjectChanges() {
             if (!window.editingProjectId) return;
             
             const projectData = {
@@ -6346,45 +8202,50 @@
                 return;
             }
             
-            // 更新项目数据
-            const projectIndex = AppState.projects.findIndex(p => p.id === window.editingProjectId);
-            if (projectIndex !== -1) {
-                // 保留原有的其他属性
-                AppState.projects[projectIndex] = {
-                    ...AppState.projects[projectIndex],
-                    ...projectData,
-                    updatedAt: new Date().toISOString()
-                };
-                
-                // 如果正在编辑当前项目，更新当前项目状态
-                if (AppState.currentProject && AppState.currentProject.id === window.editingProjectId) {
-                    AppState.currentProject = AppState.projects[projectIndex];
+            try {
+                // 更新项目数据
+                const projectIndex = AppState.projects.findIndex(p => p.id === window.editingProjectId);
+                if (projectIndex !== -1) {
+                    // 保留原有的其他属性
+                    AppState.projects[projectIndex] = {
+                        ...AppState.projects[projectIndex],
+                        ...projectData,
+                        updatedAt: new Date().toISOString()
+                    };
+                    
+                    // 保存到数据库
+                    await saveProjectToDatabase(AppState.projects[projectIndex]);
+                    
+                    // 如果正在编辑当前项目，更新当前项目状态
+                    if (AppState.currentProject && AppState.currentProject.id === window.editingProjectId) {
+                        AppState.currentProject = AppState.projects[projectIndex];
+                    }
+                    
+                    // 更新项目列表显示
+                    updateProjectCounts();
+                    if (AppState.currentView && AppState.currentView.startsWith('project-')) {
+                        const status = AppState.currentView.replace('project-', '');
+                        loadProjectsByStatus(status);
+                    }
+                    
+                    // 更新首页仪表板
+                    updateDashboard();
+                    
+                    // 关闭编辑器
+                    closeProjectEditor();
+                    
+                    showNotification('项目更新成功', 'success');
                 }
-                
-                // 保存到本地存储
-                saveAppState();
-                
-                // 更新项目列表显示
-                updateProjectCounts();
-                if (AppState.currentView && AppState.currentView.startsWith('project-')) {
-                    const status = AppState.currentView.replace('project-', '');
-                    loadProjectsByStatus(status);
-                }
-                
-                // 更新首页仪表板
-                updateDashboard();
-                
-                // 关闭编辑器
-                closeProjectEditor();
-                
-                showNotification('项目更新成功', 'success');
+            } catch (error) {
+                console.error('保存项目失败:', error);
+                showNotification('保存项目失败', 'error');
             }
         }
 
         // 删除当前项目
-        function deleteCurrentProject() {
+        async function deleteCurrentProject() {
             if (AppState.currentProject && confirm(`确定要删除项目"${AppState.currentProject.name}"吗？`)) {
-                deleteProject(AppState.currentProject.id);
+                await deleteProject(AppState.currentProject.id);
                 backToProjectList();
             }
         }
@@ -7087,18 +8948,19 @@
 
         // 修改showProjectDetails函数以支持编辑器
         const originalShowProjectDetails = window.showProjectDetails;
-        window.showProjectDetails = function(projectId) {
+        window.showProjectDetails = function(project) {
             // 调用原始函数
             if (originalShowProjectDetails) {
-                originalShowProjectDetails(projectId);
+                originalShowProjectDetails(project);
             }
             
             // 加载项目到编辑器
-            const project = AppState.projects.find(p => p.id === projectId);
             if (project) {
                 loadProjectContent(project);
             }
         };
+
+
     </script>
     
     <!-- 自定义模态对话框 -->
@@ -7184,5 +9046,80 @@
             </div>
         </div>
     </div>
+
+    <!-- 登录模态框 -->
+    <div class="custom-modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">用户登录</div>
+                <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="loginEmail">邮箱地址</label>
+                    <input type="email" id="loginEmail" class="modal-input" placeholder="请输入邮箱地址" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">密码</label>
+                    <input type="password" id="loginPassword" class="modal-input" placeholder="请输入密码" required>
+                </div>
+                <div class="form-group">
+                    <div class="auth-links">
+                        <span>还没有账户？</span>
+                        <a href="#" onclick="switchToRegister()">立即注册</a>
+                        <br><br>
+                        <a href="#" onclick="resendConfirmation()" style="font-size: 12px; color: #666;">重新发送确认邮件</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closeLoginModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="handleLogin()">登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div class="custom-modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">用户注册</div>
+                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="registerEmail">邮箱地址</label>
+                    <input type="email" id="registerEmail" class="modal-input" placeholder="请输入邮箱地址" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">密码</label>
+                    <input type="password" id="registerPassword" class="modal-input" placeholder="请输入密码（至少6位）" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <input type="password" id="confirmPassword" class="modal-input" placeholder="请再次输入密码" required>
+                </div>
+                <div class="form-group">
+                    <div class="auth-links">
+                        <span>已有账户？</span>
+                        <a href="#" onclick="switchToLogin()">立即登录</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closeRegisterModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="handleRegister()">注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase 配置和数据库 API -->
+    <script src="config/supabase.js"></script>
+    <script src="api/database.js"></script>
+    <script src="utils/migration.js"></script>
+<script src="utils/onboarding.js"></script>
+<script src="utils/offline-cache.js"></script>
+<script src="utils/data-migration.js"></script>
+<script src="utils/backup-restore.js"></script>
 </body>
 </html>
