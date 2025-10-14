@@ -4,7 +4,7 @@
   "description": "CogniNote Pro - 智能AI记事本，一个现代化、功能丰富的智能笔记管理应用",
   "main": "index.html",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); if (!fs.existsSync('public')) fs.mkdirSync('public'); fs.copyFileSync('index.html', 'public/index.html'); console.log('Build completed - static site');\"",
+    "build": "node -e \"const fs = require('fs'); const path = require('path'); if (!fs.existsSync('public')) fs.mkdirSync('public'); fs.copyFileSync('index.html', 'public/index.html'); ['utils', 'config', 'api'].forEach(dir => { if (fs.existsSync(dir)) { const targetDir = path.join('public', dir); if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, {recursive: true}); fs.readdirSync(dir).forEach(file => { fs.copyFileSync(path.join(dir, file), path.join(targetDir, file)); }); } }); console.log('Build completed - static site');\"",
     "start": "echo 'Static site ready'",
     "dev": "echo 'Development server'",
     "deploy": "vercel --prod"
