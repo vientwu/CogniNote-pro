@@ -1,6 +1,6 @@
 // CogniNote Pro Service Worker
 // 版本号
-const CACHE_VERSION = 'cogninote-v1.0.1';
+const CACHE_VERSION = 'cogninote-v1.0.2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -13,8 +13,8 @@ const STATIC_ASSETS = [
     '/utils/migration.js',
     '/utils/onboarding.js',
     '/utils/offline-cache.js',
-    '/utils/data-migration.js',
-    '/utils/backup-restore.js',
+    '/public/utils/data-migration.js',
+    '/public/utils/backup-restore.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
