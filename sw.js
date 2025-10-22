@@ -1,6 +1,6 @@
 // CogniNote Pro Service Worker
 // 版本号
-const CACHE_VERSION = 'cogninote-v1.0.0';
+const CACHE_VERSION = 'cogninote-v1.0.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/config/supabase.js',
-    '/api/database.js',
+    '/utils/database.js',
     '/utils/migration.js',
     '/utils/onboarding.js',
     '/utils/offline-cache.js',

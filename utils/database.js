@@ -858,13 +858,33 @@ async function syncAppStateToDatabase() {
     
     try {
         console.log('开始同步应用状态到数据库...');
+
+        // 1) 先将整个 AppState 作为快照写入 user_states（便于离线/快速恢复）
+        const stateSnapshot = {
+            notes: Array.isArray(AppState?.notes) ? AppState.notes : [],
+            projects: Array.isArray(AppState?.projects) ? AppState.projects : [],
+            tags: Array.isArray(AppState?.tags) ? AppState.tags : []
+        };
+        const { error: stateError } = await client
+            .from('user_states')
+            .upsert({
+                user_id: user.id,
+                state: stateSnapshot,
+                version: 'v1',
+                client_updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+        if (stateError) {
+            console.warn('写入 user_states 失败（不会阻止逐条同步）:', stateError.message);
+        } else {
+            console.log('✅ user_states 快照已写入');
+        }
         
-        // 同步笔记
+        // 2) 逐条同步笔记
         for (const note of AppState.notes) {
             await saveNoteToDatabase(note);
         }
         
-        // 同步项目
+        // 3) 逐条同步项目
         for (const project of AppState.projects) {
             await saveProjectToDatabase(project);
         }
