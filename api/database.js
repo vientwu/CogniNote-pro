@@ -9,46 +9,69 @@
  * 从数据库加载笔记
  */
 async function loadNotesFromDatabase() {
-    const client = getSupabaseClient();
-    if (!client) return;
+    console.log('=== 开始从数据库加载笔记 ===');
     
-    const user = await getCurrentUser();
-    if (!user) {
-        console.warn('用户未登录，无法加载笔记');
-        return;
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
     }
     
+    const user = await getCurrentUserOptimized();
+    if (!user) {
+        console.warn('⚠️ 用户未登录，无法加载笔记');
+        return { success: false, error: '用户未登录' };
+    }
+    
+    console.log('当前用户:', user.id);
+    
     try {
+        console.log('查询笔记数据...');
         const { data: notes, error } = await client
             .from('notes_with_tags')
             .select('*')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ 查询笔记失败:', error);
+            return { success: false, error: error.message };
+        }
+        
+        console.log('查询到的原始笔记数据:', notes);
         
         // 转换数据格式以匹配现有的 AppState 结构
-        AppState.notes = notes.map(note => ({
+        const transformedNotes = (notes || []).map(note => ({
             id: note.id,
-            title: note.title,
-            content: note.content,
+            title: note.title || '无标题',
+            content: note.content || '',
             createdAt: note.created_at,
             updatedAt: note.updated_at,
-            isFavorite: note.is_favorite,
+            isFavorite: note.is_favorite || false,
             tags: Array.isArray(note.tags) ? note.tags.map(tag => tag.name) : [],
             projectId: note.project_id
         }));
         
-        console.log(`加载了 ${notes.length} 条笔记`);
+        if (typeof AppState !== 'undefined') {
+            AppState.notes = transformedNotes;
+            console.log(`✅ 成功加载 ${transformedNotes.length} 条笔记到 AppState`);
+            console.log('AppState.notes:', AppState.notes);
+        } else {
+            console.warn('⚠️ AppState 未定义，无法保存笔记数据');
+        }
         
         // 更新 UI
         if (typeof updateNotesTabCounts === 'function') {
             updateNotesTabCounts();
+            console.log('✅ 笔记标签计数已更新');
         }
         
+        console.log(`✅ 笔记加载成功，共 ${transformedNotes.length} 条`);
+        return { success: true, data: transformedNotes };
+        
     } catch (error) {
-        console.error('加载笔记失败:', error);
-        throw error;
+        console.error('❌ 加载笔记失败:', error);
+        return { success: false, error: error.message };
     }
 }
 
@@ -58,42 +81,65 @@ async function loadNotesFromDatabase() {
  * @returns {Object} 保存结果
  */
 async function saveNoteToDatabase(note) {
-    const client = getSupabaseClient();
-    if (!client) return { success: false, error: 'Supabase 客户端未初始化' };
+    console.log('=== 开始保存笔记到数据库 ===');
+    console.log('笔记数据:', note);
     
-    const user = await getCurrentUser();
-    if (!user) return { success: false, error: '用户未登录' };
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
+    }
+    
+    const user = await getCurrentUserOptimized();
+    if (!user) {
+        console.error('❌ 用户未登录');
+        return { success: false, error: '用户未登录' };
+    }
+    
+    console.log('当前用户:', user.id);
     
     try {
         const noteData = {
-            title: note.title,
-            content: note.content,
+            title: note.title || '无标题',
+            content: note.content || '',
             is_favorite: note.isFavorite || false,
             project_id: note.projectId || null,
             user_id: user.id
         };
         
+        console.log('准备保存的笔记数据:', noteData);
+        
         let result;
         
-        if (note.id && note.id.startsWith('note-')) {
+        if (!note.id || note.id.startsWith('note-temp-') || note.id.startsWith('note-')) {
             // 新笔记，插入数据库
+            console.log('插入新笔记...');
             const { data, error } = await client
                 .from('notes')
                 .insert(noteData)
                 .select()
                 .single();
             
-            if (error) throw error;
+            if (error) {
+                console.error('❌ 插入笔记失败:', error);
+                throw error;
+            }
+            
             result = data;
+            console.log('✅ 新笔记插入成功:', result);
             
             // 更新本地 AppState 中的 ID
-            const localNote = AppState.notes.find(n => n.id === note.id);
-            if (localNote) {
-                localNote.id = result.id;
+            if (typeof AppState !== 'undefined' && AppState.notes) {
+                const localNote = AppState.notes.find(n => n.id === note.id);
+                if (localNote) {
+                    localNote.id = result.id;
+                    console.log('✅ 本地笔记ID已更新:', result.id);
+                }
             }
             
         } else {
             // 现有笔记，更新数据库
+            console.log('更新现有笔记:', note.id);
             const { data, error } = await client
                 .from('notes')
                 .update(noteData)
@@ -101,20 +147,32 @@ async function saveNoteToDatabase(note) {
                 .select()
                 .single();
             
-            if (error) throw error;
+            if (error) {
+                console.error('❌ 更新笔记失败:', error);
+                throw error;
+            }
+            
             result = data;
+            console.log('✅ 笔记更新成功:', result);
         }
         
         // 处理标签
         if (note.tags && note.tags.length > 0) {
-            await saveNoteTags(result.id, note.tags, user.id);
+            console.log('保存笔记标签:', note.tags);
+            try {
+                await saveNoteTags(result.id, note.tags, user.id);
+                console.log('✅ 笔记标签保存成功');
+            } catch (tagError) {
+                console.error('❌ 保存笔记标签失败:', tagError);
+                // 标签保存失败不影响笔记保存
+            }
         }
         
-        console.log('笔记保存成功:', result.id);
+        console.log('✅ 笔记保存完成:', result.id);
         return { success: true, data: result };
         
     } catch (error) {
-        console.error('保存笔记失败:', error);
+        console.error('❌ 保存笔记失败:', error);
         return { success: false, error: error.message };
     }
 }
@@ -125,7 +183,7 @@ async function saveNoteToDatabase(note) {
  * @returns {Object} 删除结果
  */
 async function deleteNoteFromDatabase(noteId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return { success: false, error: 'Supabase 客户端未初始化' };
     
     try {
@@ -152,32 +210,50 @@ async function deleteNoteFromDatabase(noteId) {
  * @param {string} userId - 用户ID
  */
 async function saveNoteTags(noteId, tagNames, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
         // 删除现有标签关联
-        await client
+        const { error: deleteError } = await client
             .from('note_tags')
             .delete()
             .eq('note_id', noteId);
+        
+        if (deleteError) {
+            console.error('删除现有标签关联失败:', deleteError);
+            throw deleteError;
+        }
         
         if (tagNames.length === 0) return;
         
         // 获取或创建标签
         const tagIds = await getOrCreateTags(tagNames, userId);
         
-        // 创建新的标签关联
-        const noteTagData = tagIds.map(tagId => ({
-            note_id: noteId,
-            tag_id: tagId
-        }));
-        
-        const { error } = await client
+        // 检查已存在的标签关联
+        const { data: existingTags } = await client
             .from('note_tags')
-            .insert(noteTagData);
+            .select('tag_id')
+            .eq('note_id', noteId);
         
-        if (error) throw error;
+        const existingTagIds = existingTags ? existingTags.map(t => t.tag_id) : [];
+        
+        // 只插入不存在的标签关联
+        const newTagIds = tagIds.filter(tagId => !existingTagIds.includes(tagId));
+        
+        if (newTagIds.length > 0) {
+            const noteTagData = newTagIds.map(tagId => ({
+                note_id: noteId,
+                tag_id: tagId
+            }));
+            
+            const { error } = await client
+                .from('note_tags')
+                .insert(noteTagData)
+                .select();
+                
+            if (error) throw error;
+        }
         
     } catch (error) {
         console.error('保存笔记标签失败:', error);
@@ -191,54 +267,80 @@ async function saveNoteTags(noteId, tagNames, userId) {
  * 从数据库加载项目
  */
 async function loadProjectsFromDatabase() {
-    const client = getSupabaseClient();
-    if (!client) return;
+    console.log('=== 开始从数据库加载项目 ===');
     
-    const user = await getCurrentUser();
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
+    }
+    
+    const user = await getCurrentUserOptimized();
     if (!user) {
-        console.warn('用户未登录，无法加载项目');
+        console.warn('⚠️ 用户未登录，无法加载项目');
         return;
     }
     
+    console.log('当前用户:', user.id);
+    
     try {
+        console.log('查询项目数据...');
         const { data: projects, error } = await client
             .from('projects_with_tags')
             .select('*')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
         
-        if (error) throw error;
-        
-        // 转换数据格式以匹配现有的 AppState 结构
-        AppState.projects = projects.map(project => ({
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            status: project.status,
-            progress: project.progress,
-            deadline: project.deadline,
-            createdAt: project.created_at,
-            updatedAt: project.updated_at,
-            tags: Array.isArray(project.tags) ? project.tags.map(tag => tag.name) : [],
-            members: [], // 需要单独加载成员信息
-            tasks: [] // 需要单独加载任务信息
-        }));
-        
-        // 加载项目的任务和成员信息
-        for (const project of AppState.projects) {
-            await loadProjectTasks(project.id);
-            await loadProjectMembers(project.id);
+        if (error) {
+            console.error('❌ 查询项目失败:', error);
+            throw error;
         }
         
-        console.log(`加载了 ${projects.length} 个项目`);
+        console.log('查询到的原始项目数据:', projects);
+        
+        // 转换数据格式以匹配现有的 AppState 结构
+        if (typeof AppState !== 'undefined') {
+            AppState.projects = (projects || []).map(project => ({
+                id: project.id,
+                name: project.name || '无标题项目',
+                description: project.description || '',
+                status: project.status || 'active',
+                progress: project.progress || 0,
+                deadline: project.deadline,
+                createdAt: project.created_at,
+                updatedAt: project.updated_at,
+                tags: Array.isArray(project.tags) ? project.tags.map(tag => tag.name) : [],
+                members: [], // 需要单独加载成员信息
+                tasks: [] // 需要单独加载任务信息
+            }));
+            
+            console.log(`✅ 成功加载 ${projects?.length || 0} 个项目到 AppState`);
+            console.log('AppState.projects:', AppState.projects);
+            
+            // 加载项目的任务和成员信息
+            for (const project of AppState.projects) {
+                try {
+                    console.log(`加载项目 ${project.id} 的任务和成员...`);
+                    await loadProjectTasks(project.id);
+                    await loadProjectMembers(project.id);
+                    console.log(`✅ 项目 ${project.id} 的任务和成员加载完成`);
+                } catch (taskError) {
+                    console.error(`❌ 加载项目 ${project.id} 的任务和成员失败:`, taskError);
+                    // 继续加载其他项目
+                }
+            }
+        } else {
+            console.warn('⚠️ AppState 未定义，无法保存项目数据');
+        }
         
         // 更新 UI
         if (typeof updateProjectTabCounts === 'function') {
             updateProjectTabCounts(AppState.projects);
+            console.log('✅ 项目标签计数已更新');
         }
         
     } catch (error) {
-        console.error('加载项目失败:', error);
+        console.error('❌ 加载项目失败:', error);
         throw error;
     }
 }
@@ -249,43 +351,74 @@ async function loadProjectsFromDatabase() {
  * @returns {Object} 保存结果
  */
 async function saveProjectToDatabase(project) {
-    const client = getSupabaseClient();
-    if (!client) return { success: false, error: 'Supabase 客户端未初始化' };
+    console.log('=== 开始保存项目到数据库 ===');
+    console.log('项目数据:', project);
     
-    const user = await getCurrentUser();
-    if (!user) return { success: false, error: '用户未登录' };
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
+    }
+    
+    const user = await getCurrentUserOptimized();
+    if (!user) {
+        console.error('❌ 用户未登录');
+        return { success: false, error: '用户未登录' };
+    }
+    
+    console.log('当前用户:', user.id);
     
     try {
+        // 验证和修复状态值
+        const validStatuses = ['active', 'completed', 'paused', 'cancelled'];
+        let status = project.status || 'active';
+        if (!validStatuses.includes(status)) {
+            console.warn(`⚠️ 无效的项目状态值: ${status}，使用默认值 'active'`);
+            status = 'active';
+        }
+        
         const projectData = {
-            name: project.name,
-            description: project.description,
-            status: project.status,
-            progress: project.progress || 0,
-            deadline: project.deadline,
+            title: project.title || project.name || '无标题项目', // 修复字段映射：使用title字段
+            description: project.description || '',
+            status: status,
+            progress: Math.max(0, Math.min(100, project.progress || 0)), // 确保进度在0-100之间
+            deadline: project.deadline || null,
             user_id: user.id
         };
         
+        console.log('准备保存的项目数据:', projectData);
+        
         let result;
         
-        if (project.id && project.id.startsWith('project-')) {
+        if (!project.id || project.id.startsWith('project-temp-') || project.id.startsWith('project-')) {
             // 新项目，插入数据库
+            console.log('插入新项目...');
             const { data, error } = await client
                 .from('projects')
                 .insert(projectData)
                 .select()
                 .single();
             
-            if (error) throw error;
+            if (error) {
+                console.error('❌ 插入项目失败:', error);
+                throw error;
+            }
+            
             result = data;
+            console.log('✅ 新项目插入成功:', result);
             
             // 更新本地 AppState 中的 ID
-            const localProject = AppState.projects.find(p => p.id === project.id);
-            if (localProject) {
-                localProject.id = result.id;
+            if (typeof AppState !== 'undefined' && AppState.projects) {
+                const localProject = AppState.projects.find(p => p.id === project.id);
+                if (localProject) {
+                    localProject.id = result.id;
+                    console.log('✅ 本地项目ID已更新:', result.id);
+                }
             }
             
         } else {
             // 现有项目，更新数据库
+            console.log('更新现有项目:', project.id);
             const { data, error } = await client
                 .from('projects')
                 .update(projectData)
@@ -293,25 +426,44 @@ async function saveProjectToDatabase(project) {
                 .select()
                 .single();
             
-            if (error) throw error;
+            if (error) {
+                console.error('❌ 更新项目失败:', error);
+                throw error;
+            }
+            
             result = data;
+            console.log('✅ 项目更新成功:', result);
         }
         
         // 处理标签
         if (project.tags && project.tags.length > 0) {
-            await saveProjectTags(result.id, project.tags, user.id);
+            console.log('保存项目标签:', project.tags);
+            try {
+                await saveProjectTags(result.id, project.tags, user.id);
+                console.log('✅ 项目标签保存成功');
+            } catch (tagError) {
+                console.error('❌ 保存项目标签失败:', tagError);
+                // 标签保存失败不影响项目保存
+            }
         }
         
         // 处理任务
         if (project.tasks && project.tasks.length > 0) {
-            await saveProjectTasks(result.id, project.tasks, user.id);
+            console.log('保存项目任务:', project.tasks.length, '个任务');
+            try {
+                await saveProjectTasks(result.id, project.tasks, user.id);
+                console.log('✅ 项目任务保存成功');
+            } catch (taskError) {
+                console.error('❌ 保存项目任务失败:', taskError);
+                // 任务保存失败不影响项目保存
+            }
         }
         
-        console.log('项目保存成功:', result.id);
+        console.log('✅ 项目保存完成:', result.id);
         return { success: true, data: result };
         
     } catch (error) {
-        console.error('保存项目失败:', error);
+        console.error('❌ 保存项目失败:', error);
         return { success: false, error: error.message };
     }
 }
@@ -322,7 +474,7 @@ async function saveProjectToDatabase(project) {
  * @returns {Object} 删除结果
  */
 async function deleteProjectFromDatabase(projectId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return { success: false, error: 'Supabase 客户端未初始化' };
     
     try {
@@ -349,30 +501,39 @@ async function deleteProjectFromDatabase(projectId) {
  * @param {string} userId - 用户ID
  */
 async function saveProjectTags(projectId, tagNames, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
         // 删除现有标签关联
-        await client
+        const { error: deleteError } = await client
             .from('project_tags')
             .delete()
             .eq('project_id', projectId);
+        
+        if (deleteError) {
+            console.error('删除现有项目标签关联失败:', deleteError);
+            throw deleteError;
+        }
         
         if (tagNames.length === 0) return;
         
         // 获取或创建标签
         const tagIds = await getOrCreateTags(tagNames, userId);
         
-        // 创建新的标签关联
+        // 创建新的标签关联，使用upsert避免重复键冲突
         const projectTagData = tagIds.map(tagId => ({
             project_id: projectId,
             tag_id: tagId
         }));
         
+        // 使用upsert操作，如果存在则忽略
         const { error } = await client
             .from('project_tags')
-            .insert(projectTagData);
+            .upsert(projectTagData, { 
+                onConflict: 'project_id,tag_id',
+                ignoreDuplicates: true 
+            });
         
         if (error) throw error;
         
@@ -387,7 +548,7 @@ async function saveProjectTags(projectId, tagNames, userId) {
  * @param {string} projectId - 项目ID
  */
 async function loadProjectTasks(projectId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
@@ -427,7 +588,7 @@ async function loadProjectTasks(projectId) {
  * @param {string} userId - 用户ID
  */
 async function saveProjectTasks(projectId, tasks, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
@@ -440,16 +601,35 @@ async function saveProjectTasks(projectId, tasks, userId) {
         if (tasks.length === 0) return;
         
         // 插入新任务
-        const taskData = tasks.map(task => ({
-            project_id: projectId,
-            user_id: userId,
-            title: task.title,
-            description: task.description || '',
-            status: task.status || 'todo',
-            priority: task.priority || 'medium',
-            assignee_id: task.assigneeId || userId,
-            due_date: task.dueDate
-        }));
+        const validTaskStatuses = ['todo', 'in_progress', 'completed', 'cancelled'];
+        const validPriorities = ['low', 'medium', 'high', 'urgent'];
+        
+        const taskData = tasks.map(task => {
+            // 验证任务状态
+            let taskStatus = task.status || 'todo';
+            if (!validTaskStatuses.includes(taskStatus)) {
+                console.warn(`⚠️ 无效的任务状态值: ${taskStatus}，使用默认值 'todo'`);
+                taskStatus = 'todo';
+            }
+            
+            // 验证优先级
+            let priority = task.priority || 'medium';
+            if (!validPriorities.includes(priority)) {
+                console.warn(`⚠️ 无效的任务优先级: ${priority}，使用默认值 'medium'`);
+                priority = 'medium';
+            }
+            
+            return {
+                project_id: projectId,
+                user_id: userId,
+                title: task.title || '无标题任务',
+                description: task.description || '',
+                status: taskStatus,
+                priority: priority,
+                assignee_id: task.assigneeId || userId,
+                due_date: task.dueDate
+            };
+        });
         
         const { error } = await client
             .from('tasks')
@@ -468,7 +648,7 @@ async function saveProjectTasks(projectId, tasks, userId) {
  * @param {string} projectId - 项目ID
  */
 async function loadProjectMembers(projectId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
@@ -501,10 +681,10 @@ async function loadProjectMembers(projectId) {
  * 从数据库加载标签
  */
 async function loadTagsFromDatabase() {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOptimized();
     if (!user) {
         console.warn('用户未登录，无法加载标签');
         return;
@@ -537,49 +717,85 @@ async function loadTagsFromDatabase() {
  * @returns {Array} 标签ID数组
  */
 async function getOrCreateTags(tagNames, userId) {
-    const client = getSupabaseClient();
-    if (!client) return [];
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化');
+        return [];
+    }
+    
+    // 输入验证
+    if (!Array.isArray(tagNames) || tagNames.length === 0) {
+        console.warn('⚠️ 标签名称数组为空或无效');
+        return [];
+    }
+    
+    if (!userId) {
+        console.warn('⚠️ 用户ID无效');
+        return [];
+    }
     
     try {
         const tagIds = [];
         
-        for (const tagName of tagNames) {
-            // 检查标签是否存在
-            let { data: existingTag, error: fetchError } = await client
-                .from('tags')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('name', tagName)
-                .single();
-            
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                throw fetchError;
-            }
-            
-            if (existingTag) {
-                tagIds.push(existingTag.id);
-            } else {
-                // 创建新标签
-                const { data: newTag, error: insertError } = await client
+        // 过滤和清理标签名称
+        const validTagNames = tagNames
+            .filter(name => name && typeof name === 'string' && name.trim().length > 0)
+            .map(name => name.trim().substring(0, 50)); // 限制长度
+        
+        if (validTagNames.length === 0) {
+            console.warn('⚠️ 没有有效的标签名称');
+            return [];
+        }
+        
+        for (const tagName of validTagNames) {
+            try {
+                // 检查标签是否存在
+                let { data: existingTag, error: fetchError } = await client
                     .from('tags')
-                    .insert({
-                        user_id: userId,
-                        name: tagName,
-                        color: getRandomTagColor()
-                    })
                     .select('id')
-                    .single();
+                    .eq('user_id', userId)
+                    .eq('name', tagName)
+                    .maybeSingle(); // 使用 maybeSingle 而不是 single
                 
-                if (insertError) throw insertError;
-                tagIds.push(newTag.id);
+                if (fetchError) {
+                    console.error(`❌ 查询标签失败 (${tagName}):`, fetchError);
+                    continue; // 跳过这个标签，继续处理其他标签
+                }
+                
+                if (existingTag) {
+                    tagIds.push(existingTag.id);
+                } else {
+                    // 创建新标签
+                    const { data: newTag, error: insertError } = await client
+                        .from('tags')
+                        .insert({
+                            user_id: userId,
+                            name: tagName,
+                            color: getRandomTagColor()
+                        })
+                        .select('id')
+                        .single();
+                    
+                    if (insertError) {
+                        console.error(`❌ 创建标签失败 (${tagName}):`, insertError);
+                        continue; // 跳过这个标签，继续处理其他标签
+                    }
+                    
+                    if (newTag) {
+                        tagIds.push(newTag.id);
+                    }
+                }
+            } catch (tagError) {
+                console.error(`❌ 处理标签失败 (${tagName}):`, tagError);
+                // 继续处理其他标签
             }
         }
         
         return tagIds;
         
     } catch (error) {
-        console.error('获取或创建标签失败:', error);
-        throw error;
+        console.error('❌ 获取或创建标签失败:', error);
+        return []; // 返回空数组而不是抛出错误
     }
 }
 
@@ -602,10 +818,10 @@ function getRandomTagColor() {
  * @returns {Object} 统计信息
  */
 async function getUserStats() {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return null;
     
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOptimized();
     if (!user) return null;
     
     try {
@@ -628,13 +844,13 @@ async function getUserStats() {
  * 将当前应用状态同步到数据库
  */
 async function syncAppStateToDatabase() {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) {
         console.warn('Supabase 客户端未初始化，无法同步数据');
         return;
     }
     
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOptimized();
     if (!user) {
         console.warn('用户未登录，无法同步数据');
         return;
@@ -691,7 +907,7 @@ async function syncLocalDataToDatabase() {
  * 设置实时数据监听
  */
 function setupRealtimeListeners() {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     // 监听笔记变化
@@ -896,4 +1112,19 @@ if (typeof module !== 'undefined' && module.exports) {
         syncLocalDataToDatabase,
         setupRealtimeListeners
     };
+}
+
+// 绑定函数到 window 对象（用于浏览器环境）
+if (typeof window !== 'undefined') {
+    window.loadNotesFromDatabase = loadNotesFromDatabase;
+    window.saveNoteToDatabase = saveNoteToDatabase;
+    window.deleteNoteFromDatabase = deleteNoteFromDatabase;
+    window.loadProjectsFromDatabase = loadProjectsFromDatabase;
+    window.saveProjectToDatabase = saveProjectToDatabase;
+    window.deleteProjectFromDatabase = deleteProjectFromDatabase;
+    window.loadTagsFromDatabase = loadTagsFromDatabase;
+    window.getUserStats = getUserStats;
+    window.syncAppStateToDatabase = syncAppStateToDatabase;
+    window.syncLocalDataToDatabase = syncLocalDataToDatabase;
+    window.setupRealtimeListeners = setupRealtimeListeners;
 }

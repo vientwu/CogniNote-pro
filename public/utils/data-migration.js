@@ -40,7 +40,7 @@ class DataMigrationTool {
     async migrate() {
         try {
             // 检查用户是否已登录
-            const user = getCurrentUser();
+            const user = await getCurrentUserOptimized();
             if (!user) {
                 throw new Error('用户未登录，无法执行迁移');
             }
@@ -130,7 +130,7 @@ class DataMigrationTool {
                     .from('tags')
                     .select('id')
                     .eq('name', tag.name)
-                    .eq('user_id', getCurrentUser().id);
+                    .eq('user_id', getCurrentUserOptimized().id);
 
                 if (existingTags && existingTags.length > 0) {
                     console.log(`标签 "${tag.name}" 已存在，跳过`);
@@ -143,7 +143,7 @@ class DataMigrationTool {
                     .insert({
                         name: tag.name,
                         color: tag.color || '#3b82f6',
-                        user_id: getCurrentUser().id
+                        user_id: getCurrentUserOptimized().id
                     });
 
                 if (error) throw error;
@@ -171,7 +171,7 @@ class DataMigrationTool {
                     .from('notes')
                     .select('id')
                     .eq('title', note.title)
-                    .eq('user_id', getCurrentUser().id);
+                    .eq('user_id', getCurrentUserOptimized().id);
 
                 if (existingNotes && existingNotes.length > 0) {
                     console.log(`笔记 "${note.title}" 已存在，跳过`);
@@ -185,7 +185,7 @@ class DataMigrationTool {
                         title: note.title || '无标题',
                         content: note.content || '',
                         project_id: note.projectId || null,
-                        user_id: getCurrentUser().id,
+                        user_id: getCurrentUserOptimized().id,
                         created_at: note.createdAt || new Date().toISOString(),
                         updated_at: note.updatedAt || new Date().toISOString()
                     })
@@ -223,7 +223,7 @@ class DataMigrationTool {
                     .from('projects')
                     .select('id')
                     .eq('name', project.name)
-                    .eq('user_id', getCurrentUser().id);
+                    .eq('user_id', getCurrentUserOptimized().id);
 
                 if (existingProjects && existingProjects.length > 0) {
                     console.log(`项目 "${project.name}" 已存在，跳过`);
@@ -238,7 +238,7 @@ class DataMigrationTool {
                         description: project.description || '',
                         status: project.status || 'active',
                         priority: project.priority || 'medium',
-                        user_id: getCurrentUser().id,
+                        user_id: getCurrentUserOptimized().id,
                         created_at: project.createdAt || new Date().toISOString(),
                         updated_at: project.updatedAt || new Date().toISOString()
                     })
@@ -279,7 +279,7 @@ class DataMigrationTool {
                     .from('tags')
                     .select('id')
                     .eq('name', tagName)
-                    .eq('user_id', getCurrentUser().id)
+                    .eq('user_id', getCurrentUserOptimized().id)
                     .single();
 
                 if (tag) {
@@ -308,7 +308,7 @@ class DataMigrationTool {
                     .from('tags')
                     .select('id')
                     .eq('name', tagName)
-                    .eq('user_id', getCurrentUser().id)
+                    .eq('user_id', getCurrentUserOptimized().id)
                     .single();
 
                 if (tag) {

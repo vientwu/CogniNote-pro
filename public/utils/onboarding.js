@@ -190,7 +190,7 @@ async function startWithOption() {
  * @param {boolean} createSample - 是否创建示例数据
  */
 async function initializeUserWorkspace(createSample) {
-    const user = await getCurrentUser();
+    const user = await getCurrentUserOptimized();
     if (!user) {
         throw new Error('用户未登录');
     }
@@ -507,7 +507,7 @@ function addOnboardingStyles() {
  * @param {Object} user - 用户对象
  */
 async function checkAndShowOnboarding(user) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {

@@ -20,7 +20,7 @@ async function migrateLocalStorageToDatabase() {
     
     try {
         // 检查用户登录状态
-        const user = await getCurrentUser();
+        const user = await getCurrentUserOptimized();
         if (!user) {
             throw new Error('用户未登录，无法进行数据迁移');
         }
@@ -163,7 +163,7 @@ function getLocalStorageData() {
  */
 async function migrateTags(tags, userId) {
     const result = { migrated: 0, failed: 0, errors: [] };
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     
     if (!client) {
         result.errors.push('Supabase 客户端未初始化');
@@ -214,7 +214,7 @@ async function migrateTags(tags, userId) {
  */
 async function migrateNotes(notes, userId) {
     const result = { migrated: 0, failed: 0, errors: [] };
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     
     if (!client) {
         result.errors.push('Supabase 客户端未初始化');
@@ -266,7 +266,7 @@ async function migrateNotes(notes, userId) {
  * @param {string} userId - 用户ID
  */
 async function migrateNoteTags(noteId, tagNames, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
@@ -302,7 +302,7 @@ async function migrateNoteTags(noteId, tagNames, userId) {
  */
 async function migrateProjects(projects, userId) {
     const result = { migrated: 0, failed: 0, errors: [] };
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     
     if (!client) {
         result.errors.push('Supabase 客户端未初始化');
@@ -360,7 +360,7 @@ async function migrateProjects(projects, userId) {
  * @param {string} userId - 用户ID
  */
 async function migrateProjectTags(projectId, tagNames, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {
@@ -395,7 +395,7 @@ async function migrateProjectTags(projectId, tagNames, userId) {
  * @param {string} userId - 用户ID
  */
 async function migrateProjectTasks(projectId, tasks, userId) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) return;
     
     try {

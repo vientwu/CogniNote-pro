@@ -132,6 +132,18 @@ class OfflineCacheManager {
             return;
         }
         
+        // 检查用户是否已登录
+        try {
+            const user = await getCurrentUserOptimized();
+            if (!user) {
+                console.log('用户未登录，跳过同步队列处理');
+                return;
+            }
+        } catch (error) {
+            console.log('无法获取用户信息，跳过同步队列处理');
+            return;
+        }
+        
         console.log(`开始处理同步队列，共 ${this.syncQueue.length} 项`);
         
         const itemsToRemove = [];

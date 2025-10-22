@@ -13,7 +13,7 @@ class BackupRestoreTool {
      */
     async createBackup(description = '') {
         try {
-            const user = getCurrentUser();
+            const user = getCurrentUserOptimized();
             if (!user) {
                 throw new Error('用户未登录，无法创建备份');
             }
@@ -69,7 +69,7 @@ class BackupRestoreTool {
             const { data: notes, error: notesError } = await supabase
                 .from('notes_with_tags')
                 .select('*')
-                .eq('user_id', getCurrentUser().id)
+                .eq('user_id', getCurrentUserOptimized().id)
                 .order('created_at', { ascending: false });
 
             if (notesError) throw notesError;
@@ -79,7 +79,7 @@ class BackupRestoreTool {
             const { data: projects, error: projectsError } = await supabase
                 .from('projects_with_tags')
                 .select('*')
-                .eq('user_id', getCurrentUser().id)
+                .eq('user_id', getCurrentUserOptimized().id)
                 .order('created_at', { ascending: false });
 
             if (projectsError) throw projectsError;
@@ -102,7 +102,7 @@ class BackupRestoreTool {
             const { data: tags, error: tagsError } = await supabase
                 .from('tags')
                 .select('*')
-                .eq('user_id', getCurrentUser().id)
+                .eq('user_id', getCurrentUserOptimized().id)
                 .order('name');
 
             if (tagsError) throw tagsError;
@@ -169,7 +169,7 @@ class BackupRestoreTool {
      */
     async restoreFromBackup(backup, options = {}) {
         try {
-            const user = getCurrentUser();
+            const user = getCurrentUserOptimized();
             if (!user) {
                 throw new Error('用户未登录，无法恢复数据');
             }
@@ -287,7 +287,7 @@ class BackupRestoreTool {
                         id: options.preserveIds ? tag.id : undefined,
                         name: tag.name,
                         color: tag.color,
-                        user_id: getCurrentUser().id
+                        user_id: getCurrentUserOptimized().id
                     }, {
                         onConflict: options.preserveIds ? 'id' : 'name,user_id'
                     });
@@ -320,7 +320,7 @@ class BackupRestoreTool {
                         description: project.description,
                         status: project.status,
                         priority: project.priority,
-                        user_id: getCurrentUser().id,
+                        user_id: getCurrentUserOptimized().id,
                         created_at: project.created_at,
                         updated_at: project.updated_at
                     }, {
@@ -354,7 +354,7 @@ class BackupRestoreTool {
                         title: note.title,
                         content: note.content,
                         project_id: note.project_id,
-                        user_id: getCurrentUser().id,
+                        user_id: getCurrentUserOptimized().id,
                         created_at: note.created_at,
                         updated_at: note.updated_at
                     }, {
@@ -437,7 +437,7 @@ class BackupRestoreTool {
      */
     async clearUserData() {
         try {
-            const userId = getCurrentUser().id;
+            const userId = getCurrentUserOptimized().id;
             
             // 删除任务
             await supabase.from('tasks').delete().in('project_id', 

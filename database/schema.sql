@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 增加角色列（若不存在），用于全局权限控制
+ALTER TABLE user_profiles
+    ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'member'
+        CHECK (role IN ('owner', 'admin', 'member'));
+
 -- 项目表
 CREATE TABLE IF NOT EXISTS projects (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -149,6 +154,28 @@ CREATE POLICY "Users can view own profile" ON user_profiles FOR SELECT USING (au
 CREATE POLICY "Users can update own profile" ON user_profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON user_profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
+-- 管理员判断函数（SECURITY DEFINER，避免RLS递归）
+CREATE OR REPLACE FUNCTION public.is_current_user_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE v_role text;
+BEGIN
+  SELECT role INTO v_role FROM public.user_profiles WHERE id = auth.uid();
+  RETURN COALESCE(v_role IN ('owner','admin'), false);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_current_user_admin() TO authenticated, anon;
+
+-- 允许 owner/admin 读取全表（用于管理面板）
+DROP POLICY IF EXISTS "Admins can view all profiles" ON user_profiles;
+CREATE POLICY "Admins can view all profiles" ON user_profiles FOR SELECT USING (
+    public.is_current_user_admin()
+);
+
 -- 项目表的RLS策略
 CREATE POLICY "Users can view own projects" ON projects FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own projects" ON projects FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -244,6 +271,14 @@ FROM projects p
 LEFT JOIN project_tags pt ON p.id = pt.project_id
 LEFT JOIN tags t ON pt.tag_id = t.id
 GROUP BY p.id, p.user_id, p.name, p.description, p.status, p.progress, p.deadline, p.created_at, p.updated_at;
+
+-- 为视图启用行级安全策略
+ALTER VIEW notes_with_tags ENABLE ROW LEVEL SECURITY;
+ALTER VIEW projects_with_tags ENABLE ROW LEVEL SECURITY;
+
+-- 为视图创建RLS策略
+CREATE POLICY "Users can view own notes with tags" ON notes_with_tags FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own projects with tags" ON projects_with_tags FOR SELECT USING (auth.uid() = user_id);
 
 -- 创建函数以获取用户统计信息
 CREATE OR REPLACE FUNCTION get_user_stats(user_uuid UUID)

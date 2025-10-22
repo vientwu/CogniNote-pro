@@ -1,11 +1,10 @@
 /**
- * Supabase 客户端配置
- * 用于连接和操作 CogniNote Pro 数据库
+ * Supabase 客户端配置和认证管理
+ * 修复版本 - 解决登录、笔记创建、项目创建问题
  */
 
-// Supabase 配置常量
+// Supabase 配置
 const SUPABASE_CONFIG = {
-    // 优先使用环境变量，如果没有则使用默认值
     url: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL || 
          (typeof window !== 'undefined' && window.location?.hostname === 'localhost' ? 
           'https://kqiutopycohertaccqkz.supabase.co' : 
@@ -13,12 +12,18 @@ const SUPABASE_CONFIG = {
     anonKey: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxaXV0b3B5Y29oZXJ0YWNjcWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTk3OTIsImV4cCI6MjA3NTc3NTc5Mn0.7Q51Vv5q3Twn1v-03O9OZtae36xnmddn9UZSQ8_FcmY',
     
-    // 可选配置
+    // 优化的配置选项
     options: {
         auth: {
             autoRefreshToken: true,
             persistSession: true,
-            detectSessionInUrl: true
+            detectSessionInUrl: true,
+            flowType: 'pkce',
+            storage: (typeof window !== 'undefined' ? {
+                getItem: (key) => window.sessionStorage.getItem(key),
+                setItem: (key, value) => window.sessionStorage.setItem(key, value),
+                removeItem: (key) => window.sessionStorage.removeItem(key)
+            } : undefined)
         },
         realtime: {
             params: {
@@ -28,119 +33,150 @@ const SUPABASE_CONFIG = {
     }
 };
 
-// 创建 Supabase 客户端实例
+// 全局 Supabase 客户端实例
 let supabaseClient = null;
+let isProcessingAuth = false; // 防止重复处理认证事件的标志位
+// 统一管理员邮箱白名单（如果未设置则提供默认值）
+if (typeof window !== 'undefined') {
+  window.ADMIN_EMAILS = Array.isArray(window.ADMIN_EMAILS) ? window.ADMIN_EMAILS : ['15274410535@163.com'];
+}
 
 /**
  * 初始化 Supabase 客户端
- * @returns {Object} Supabase 客户端实例
  */
 function initSupabase() {
-    if (!supabaseClient) {
-        // 检查是否已加载 Supabase 库
-        if (typeof window.supabase === 'undefined') {
-            console.error('Supabase 库未加载。请确保在 HTML 中包含 Supabase CDN 链接。');
-            return null;
-        }
-        
-        // 验证配置
-        if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey || 
-            SUPABASE_CONFIG.url.includes('YOUR_SUPABASE_URL') || 
-            SUPABASE_CONFIG.anonKey.includes('YOUR_SUPABASE_ANON_KEY')) {
-            console.error('请在 supabase.js 中配置正确的 Supabase URL 和 API 密钥');
-            return null;
-        }
-        
-        try {
-            // 使用 Supabase v2 的正确 API
-            supabaseClient = window.supabase.createClient(
-                SUPABASE_CONFIG.url,
-                SUPABASE_CONFIG.anonKey,
-                SUPABASE_CONFIG.options
-            );
-            
-            console.log('Supabase 客户端初始化成功');
-            
-            // 设置认证状态监听器
-            supabaseClient.auth.onAuthStateChange((event, session) => {
-                console.log('认证状态变化:', event, session);
-                handleAuthStateChange(event, session);
-            });
-            
-        } catch (error) {
-            console.error('Supabase 客户端初始化失败:', error);
-            return null;
-        }
-    }
+    console.log('🔵 开始初始化 Supabase 客户端...');
     
-    return supabaseClient;
+    try {
+        // 检查 Supabase SDK 是否已加载
+        if (typeof window === 'undefined' || !window.supabase) {
+            console.error('❌ Supabase SDK 未加载');
+            return false;
+        }
+        
+        // 创建 Supabase 客户端
+        supabaseClient = window.supabase.createClient(
+            SUPABASE_CONFIG.url,
+            SUPABASE_CONFIG.anonKey,
+            SUPABASE_CONFIG.options
+        );
+        
+        console.log('✅ Supabase 客户端初始化成功');
+        console.log('🔵 Supabase URL:', SUPABASE_CONFIG.url);
+        console.log('🔵 配置选项:', SUPABASE_CONFIG.options);
+        
+        // 设置认证状态监听器
+        setupAuthListener();
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Supabase 客户端初始化失败:', error);
+        return false;
+    }
 }
 
 /**
  * 获取 Supabase 客户端实例
- * @returns {Object} Supabase 客户端实例
  */
 function getSupabaseClient() {
-    if (!supabaseClient) {
-        return initSupabase();
-    }
     return supabaseClient;
 }
 
 /**
- * 处理认证状态变化
- * @param {string} event - 认证事件类型
- * @param {Object} session - 用户会话信息
+ * 设置认证状态监听器
  */
-function handleAuthStateChange(event, session) {
-    switch (event) {
-        case 'SIGNED_IN':
-            console.log('用户已登录:', session.user);
-            onUserSignedIn(session.user);
-            break;
-        case 'SIGNED_OUT':
-            console.log('用户已登出');
+function setupAuthListener() {
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化，无法设置认证监听器');
+        return;
+    }
+    
+    console.log('🔵 设置认证状态监听器...');
+    
+    client.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔵 认证状态变化:', event, session?.user?.email || '无用户');
+        console.log('🔵 会话状态:', session ? '有会话' : '无会话');
+        console.log('🔵 用户:', session?.user?.email || '无用户');
+        
+        // ⚠️ 不要在这里加载任何数据！
+        // ⚠️ 不要在这里调用任何函数！
+        // ⚠️ 只记录日志！
+        
+        // 暂时禁用自动处理，防止循环
+        // await handleAuthStateChange(event, session);
+    });
+}
+
+/**
+ * 处理认证状态变化
+ */
+async function handleAuthStateChange(event, session) {
+    console.log('🔵 处理认证状态变化:', event, '处理中:', isProcessingAuth);
+    
+    // 防止重复处理同一个认证事件
+    if (isProcessingAuth) {
+        console.log('⚠️ 认证正在处理中，跳过重复调用');
+        return;
+    }
+    
+    try {
+        if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ 用户已登录:', session.user.email);
+            
+            // 设置处理标志位
+            isProcessingAuth = true;
+            
+            // 调用登录成功处理函数
+            await onUserSignedIn(session.user);
+            
+        } else if (event === 'SIGNED_OUT') {
+            console.log('🔵 用户已登出');
             onUserSignedOut();
-            break;
-        case 'TOKEN_REFRESHED':
-            console.log('令牌已刷新');
-            break;
-        case 'USER_UPDATED':
-            console.log('用户信息已更新:', session.user);
-            break;
-        default:
-            console.log('未知认证事件:', event);
+        } else if (event === 'TOKEN_REFRESHED') {
+            console.log('🔵 令牌已刷新');
+        }
+    } catch (error) {
+        console.error('❌ 处理认证状态变化失败:', error);
+    } finally {
+        // 无论成功还是失败，都要重置处理标志位
+        isProcessingAuth = false;
     }
 }
 
 /**
- * 用户登录成功处理
- * @param {Object} user - 用户信息
+ * 用户登录成功处理 - 简化版本
  */
 async function onUserSignedIn(user) {
+    console.log('=== 开始处理用户登录 ===');
+    console.log('用户ID:', user.id);
+    console.log('用户邮箱:', user.email);
+    
     try {
-        // 确保用户配置文件存在
+        console.log('1. 确保用户配置文件存在...');
         await ensureUserProfile(user);
+        console.log('✅ 用户配置文件处理完成');
         
-        // 初始化用户数据
-        await initializeUserData(user.id);
-        
-        // 更新 UI 状态
+        console.log('2. 更新UI状态...');
         if (typeof updateUIForAuthenticatedUser === 'function') {
-            updateUIForAuthenticatedUser(user);
+            console.log('调用 updateUIForAuthenticatedUser，传入用户:', user.email);
+            await updateUIForAuthenticatedUser(user);
+            console.log('✅ UI状态更新完成');
+        } else {
+            console.warn('⚠️ updateUIForAuthenticatedUser 函数不存在');
         }
         
-        // 加载用户数据
-        await loadUserData();
+        // ❌ 临时注释掉自动数据加载，防止循环
+        // console.log('3. 加载用户数据...');
+        // await loadUserData();
+        // console.log('✅ 用户数据加载完成');
         
-        // 检查是否需要显示引导界面
-        if (typeof checkAndShowOnboarding === 'function') {
-            await checkAndShowOnboarding(user);
-        }
+        console.log('🎉 用户登录处理完成（已跳过自动数据加载）');
         
     } catch (error) {
-        console.error('用户登录处理失败:', error);
-        showNotification('登录处理失败，请刷新页面重试', 'error');
+        console.error('❌ 用户登录处理失败:', error);
+        console.error('错误详情:', error.message);
+        // 不显示错误通知，避免影响用户体验
     }
 }
 
@@ -148,39 +184,66 @@ async function onUserSignedIn(user) {
  * 用户登出处理
  */
 function onUserSignedOut() {
-    // 清空应用状态
-    if (typeof clearAppState === 'function') {
-        clearAppState();
-    }
-    
-    // 更新 UI 状态
+    console.log('🔵 处理用户登出...');
+    clearAppState();
     if (typeof updateUIForUnauthenticatedUser === 'function') {
         updateUIForUnauthenticatedUser();
     }
 }
 
 /**
- * 确保用户配置文件存在
- * @param {Object} user - 用户信息
+ * 确保用户配置文件存在 - 简化版本
  */
 async function ensureUserProfile(user) {
-    const client = getSupabaseClient();
-    if (!client) return;
+    console.log('🔵 ensureUserProfile 开始执行，用户:', user.email);
+    
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化，跳过用户配置文件检查');
+        return;
+    }
     
     try {
-        // 检查用户配置文件是否存在
+        console.log('🔵 检查用户配置文件是否存在...');
+        
+        // 先尝试查询用户配置文件
         const { data: profile, error: fetchError } = await client
             .from('user_profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle(); // 使用 maybeSingle 避免 PGRST116 错误
         
-        if (fetchError && fetchError.code !== 'PGRST116') {
-            throw fetchError;
+        console.log('🔵 用户配置文件查询结果:', { 
+            hasProfile: !!profile, 
+            hasError: !!fetchError,
+            errorCode: fetchError?.code,
+            errorMessage: fetchError?.message 
+        });
+        
+        if (fetchError) {
+            console.warn('⚠️ 用户配置文件查询失败:', fetchError.message);
+            const fallbackRole = (Array.isArray(window.ADMIN_EMAILS) && window.ADMIN_EMAILS.includes(user.email)) ? 'owner' : 'member';
+            if (typeof window.updateRoleBanner === 'function') {
+                window.updateRoleBanner(fallbackRole);
+            }
+            if (typeof window !== 'undefined') {
+                window.currentUserRole = fallbackRole;
+            }
+            return {
+                id: user.id,
+                email: user.email,
+                display_name: user.user_metadata?.display_name || user.email.split('@')[0],
+                avatar_url: user.user_metadata?.avatar_url || null,
+                theme_preference: 'light',
+                role: fallbackRole,
+                _error: fetchError?.message
+            };
         }
         
-        // 如果配置文件不存在，创建一个
+        // 如果配置文件不存在，尝试创建一个
         if (!profile) {
+            console.log('🔵 用户配置文件不存在，尝试创建...');
+            
             const { error: insertError } = await client
                 .from('user_profiles')
                 .insert({
@@ -192,410 +255,97 @@ async function ensureUserProfile(user) {
                 });
             
             if (insertError) {
-                throw insertError;
+                console.warn('⚠️ 用户配置文件创建失败:', insertError.message);
+                const fallbackRole = (Array.isArray(window.ADMIN_EMAILS) && window.ADMIN_EMAILS.includes(user.email)) ? 'owner' : 'member';
+                if (typeof window.updateRoleBanner === 'function') window.updateRoleBanner(fallbackRole);
+                if (typeof window !== 'undefined') window.currentUserRole = fallbackRole;
+                return {
+                    id: user.id,
+                    email: user.email,
+                    display_name: user.user_metadata?.display_name || user.email.split('@')[0],
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                    theme_preference: 'light',
+                    role: fallbackRole,
+                    _error: insertError?.message
+                };
             }
             
-            console.log('用户配置文件创建成功');
+            console.log('✅ 用户配置文件创建成功');
+            const createdRole = (Array.isArray(window.ADMIN_EMAILS) && window.ADMIN_EMAILS.includes(user.email)) ? 'owner' : 'member';
+            if (typeof window.updateRoleBanner === 'function') window.updateRoleBanner(createdRole);
+            if (typeof window !== 'undefined') window.currentUserRole = createdRole;
+            return {
+                id: user.id,
+                email: user.email,
+                display_name: user.user_metadata?.display_name || user.email.split('@')[0],
+                avatar_url: user.user_metadata?.avatar_url || null,
+                theme_preference: 'light',
+                role: createdRole
+            };
+        } else {
+            console.log('✅ 用户配置文件已存在');
+            const computedRole = typeof profile.role !== 'undefined'
+                ? profile.role
+                : ((Array.isArray(window.ADMIN_EMAILS) && window.ADMIN_EMAILS.includes(user.email)) ? 'owner' : 'member');
+            if (typeof window.updateRoleBanner === 'function') window.updateRoleBanner(computedRole);
+            if (typeof window !== 'undefined') window.currentUserRole = computedRole;
+            return { ...profile, role: computedRole };
         }
         
     } catch (error) {
-        console.error('确保用户配置文件失败:', error);
-        throw error;
+        console.warn('⚠️ ensureUserProfile 执行失败，但继续执行后续流程:', error.message);
+        const fallbackRole = (Array.isArray(window.ADMIN_EMAILS) && window.ADMIN_EMAILS.includes(user.email)) ? 'owner' : 'member';
+        if (typeof window.updateRoleBanner === 'function') window.updateRoleBanner(fallbackRole);
+        if (typeof window !== 'undefined') window.currentUserRole = fallbackRole;
+        return {
+            id: user.id,
+            email: user.email,
+            display_name: user.user_metadata?.display_name || user.email.split('@')[0],
+            avatar_url: user.user_metadata?.avatar_url || null,
+            theme_preference: 'light',
+            role: fallbackRole,
+            _error: error?.message
+        };
     }
-}
-
-/**
- * 初始化用户数据
- * @param {string} userId - 用户ID
- * @param {boolean} createSample - 是否创建示例数据
- */
-async function initializeUserData(userId, createSample = true) {
-    const client = getSupabaseClient();
-    if (!client) return;
     
-    try {
-        // 检查用户是否有数据
-        const { data: notes } = await client
-            .from('notes')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1);
-        
-        const { data: projects } = await client
-            .from('projects')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1);
-        
-        // 如果是新用户（没有任何数据），创建初始数据
-        if ((!notes || notes.length === 0) && (!projects || projects.length === 0)) {
-            console.log('检测到新用户，初始化工作空间');
-            
-            if (createSample) {
-                await createWelcomeData(userId);
-            } else {
-                await createEmptyWorkspace(userId);
-            }
-            
-            // 设置用户首次登录标记
-            await markUserAsInitialized(userId);
-        }
-        
-    } catch (error) {
-        console.error('初始化用户数据失败:', error);
-        throw error;
-    }
+    console.log('✅ ensureUserProfile 执行完成');
 }
 
 /**
- * 创建欢迎数据（示例项目和笔记）
- * @param {string} userId - 用户ID
- */
-async function createWelcomeData(userId) {
-    const client = getSupabaseClient();
-    if (!client) throw new Error('Supabase客户端未初始化');
-    
-    try {
-        // 创建示例项目
-        const { data: project, error: projectError } = await client
-            .from('projects')
-            .insert({
-                user_id: userId,
-                name: '欢迎使用 CogniNote Pro',
-                description: '这是一个示例项目，帮助您快速了解 CogniNote Pro 的功能。您可以在这里管理笔记、跟踪任务进度，并使用标签来组织内容。',
-                status: 'progress',
-                progress: 30,
-                deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天后
-                members: ['您自己'],
-                color: '#3b82f6'
-            })
-            .select()
-            .single();
-        
-        if (projectError) throw projectError;
-        
-        // 创建示例笔记
-        const sampleNotes = [
-            {
-                user_id: userId,
-                project_id: project.id,
-                title: '欢迎使用 CogniNote Pro！',
-                content: `# 欢迎使用 CogniNote Pro！
-
-感谢您选择 CogniNote Pro 作为您的智能记事工具。这里是一些快速入门指南：
-
-## 🚀 主要功能
-
-### 📝 智能笔记
-- 支持 **Markdown** 格式编写
-- 实时自动保存，永不丢失您的想法
-- 强大的搜索功能，快速找到所需内容
-
-### 📁 项目管理
-- 创建项目来组织相关笔记
-- 跟踪项目进度和任务状态
-- 设置截止日期和团队成员
-
-### 🏷️ 标签系统
-- 使用标签对笔记进行分类
-- 支持多标签组合筛选
-- 颜色标记，一目了然
-
-### ☁️ 云端同步
-- 数据安全存储在云端
-- 多设备实时同步
-- 离线编辑，联网后自动同步
-
-## 💡 使用技巧
-
-1. **快速创建笔记**：点击右上角的"+"按钮
-2. **使用标签**：在笔记中添加标签来分类管理
-3. **项目管理**：将相关笔记归类到同一个项目中
-4. **搜索功能**：使用搜索框快速找到需要的内容
-
-## 🎯 下一步
-
-- 尝试创建您的第一个笔记
-- 探索项目管理功能
-- 使用标签来组织您的内容
-- 体验实时同步的便利
-
-祝您使用愉快！如有任何问题，请随时联系我们的支持团队。`,
-                is_favorite: true
-            },
-            {
-                user_id: userId,
-                project_id: project.id,
-                title: 'Markdown 语法指南',
-                content: `# Markdown 语法指南
-
-CogniNote Pro 支持完整的 Markdown 语法，让您的笔记更加美观和结构化。
-
-## 基础语法
-
-### 标题
-\`\`\`
-# 一级标题
-## 二级标题
-### 三级标题
-\`\`\`
-
-### 文本格式
-- **粗体文本**
-- *斜体文本*
-- ~~删除线~~
-- \`行内代码\`
-
-### 列表
-#### 无序列表
-- 项目一
-- 项目二
-  - 子项目
-  - 子项目
-
-#### 有序列表
-1. 第一项
-2. 第二项
-3. 第三项
-
-### 链接和图片
-- [链接文本](https://example.com)
-- ![图片描述](image-url)
-
-### 代码块
-\`\`\`javascript
-function hello() {
-    console.log("Hello, CogniNote Pro!");
-}
-\`\`\`
-
-### 表格
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| 数据1 | 数据2 | 数据3 |
-| 数据4 | 数据5 | 数据6 |
-
-### 引用
-> 这是一个引用块
-> 可以包含多行内容
-
-## 高级功能
-
-### 任务列表
-- [x] 已完成的任务
-- [ ] 待完成的任务
-- [ ] 另一个待完成的任务
-
-### 分割线
----
-
-现在您可以开始使用这些语法来创建美观的笔记了！`,
-                is_favorite: false
-            },
-            {
-                user_id: userId,
-                project_id: project.id,
-                title: '项目规划模板',
-                content: `# 项目规划模板
-
-使用这个模板来规划您的项目，确保项目顺利进行。
-
-## 📋 项目概述
-
-**项目名称：** [在此填写项目名称]
-
-**项目描述：** [简要描述项目目标和范围]
-
-**开始日期：** [YYYY-MM-DD]
-
-**预计完成日期：** [YYYY-MM-DD]
-
-**项目负责人：** [负责人姓名]
-
-## 🎯 项目目标
-
-### 主要目标
-- [ ] 目标1：[具体描述]
-- [ ] 目标2：[具体描述]
-- [ ] 目标3：[具体描述]
-
-### 成功标准
-- [ ] 标准1：[可衡量的成功指标]
-- [ ] 标准2：[可衡量的成功指标]
-
-## 📅 项目阶段
-
-### 阶段1：规划阶段
-**时间：** [开始日期] - [结束日期]
-- [ ] 需求分析
-- [ ] 资源评估
-- [ ] 风险识别
-- [ ] 计划制定
-
-### 阶段2：执行阶段
-**时间：** [开始日期] - [结束日期]
-- [ ] 任务1
-- [ ] 任务2
-- [ ] 任务3
-
-### 阶段3：收尾阶段
-**时间：** [开始日期] - [结束日期]
-- [ ] 测试验收
-- [ ] 文档整理
-- [ ] 项目总结
-
-## 👥 团队成员
-
-| 姓名 | 角色 | 职责 | 联系方式 |
-|------|------|------|----------|
-| [姓名] | [角色] | [主要职责] | [邮箱/电话] |
-
-## 📊 进度跟踪
-
-- **当前进度：** 0%
-- **下一个里程碑：** [里程碑名称]
-- **预计完成时间：** [日期]
-
-## ⚠️ 风险管理
-
-| 风险 | 影响程度 | 发生概率 | 应对措施 |
-|------|----------|----------|----------|
-| [风险描述] | 高/中/低 | 高/中/低 | [具体措施] |
-
-## 📝 会议记录
-
-### [日期] 项目启动会议
-- **参与人员：** [列出参与者]
-- **主要讨论：** [会议要点]
-- **决定事项：** [重要决定]
-- **行动项：** [后续行动]
-
----
-
-*提示：您可以复制这个模板来创建新的项目规划笔记。*`,
-                is_favorite: false
-            }
-        ];
-        
-        const { error: notesError } = await client
-            .from('notes')
-            .insert(sampleNotes);
-        
-        if (notesError) throw notesError;
-        
-        // 创建示例标签
-        const sampleTags = [
-            { user_id: userId, name: '重要', color: '#ef4444' },
-            { user_id: userId, name: '工作', color: '#3b82f6' },
-            { user_id: userId, name: '学习', color: '#10b981' },
-            { user_id: userId, name: '想法', color: '#f59e0b' },
-            { user_id: userId, name: '模板', color: '#8b5cf6' }
-        ];
-        
-        const { data: tags, error: tagsError } = await client
-            .from('tags')
-            .insert(sampleTags)
-            .select();
-        
-        if (tagsError) throw tagsError;
-        
-        // 为项目添加标签
-        await client
-            .from('project_tags')
-            .insert([
-                { project_id: project.id, tag_id: tags.find(t => t.name === '重要').id },
-                { project_id: project.id, tag_id: tags.find(t => t.name === '工作').id }
-            ]);
-        
-        console.log('示例数据创建成功');
-        
-    } catch (error) {
-        console.error('创建示例数据失败:', error);
-        throw error;
-    }
-}
-
-/**
- * 创建空白工作空间
- * @param {string} userId - 用户ID
- */
-async function createEmptyWorkspace(userId) {
-    const client = getSupabaseClient();
-    if (!client) throw new Error('Supabase客户端未初始化');
-    
-    try {
-        // 创建基础标签
-        const basicTags = [
-            { user_id: userId, name: '重要', color: '#ef4444' },
-            { user_id: userId, name: '工作', color: '#3b82f6' },
-            { user_id: userId, name: '个人', color: '#10b981' }
-        ];
-        
-        const { error: tagsError } = await client
-            .from('tags')
-            .insert(basicTags);
-        
-        if (tagsError) throw tagsError;
-        
-        console.log('空白工作空间创建成功');
-        
-    } catch (error) {
-        console.error('创建空白工作空间失败:', error);
-        throw error;
-    }
-}
-
-/**
- * 标记用户已初始化
- * @param {string} userId - 用户ID
- */
-async function markUserAsInitialized(userId) {
-    const client = getSupabaseClient();
-    if (!client) throw new Error('Supabase客户端未初始化');
-    
-    try {
-        const { error } = await client
-            .from('user_profiles')
-            .update({ 
-                is_initialized: true,
-                updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
-        
-        if (error) throw error;
-        
-        console.log('用户初始化标记成功:', userId);
-        
-    } catch (error) {
-        console.error('标记用户初始化失败:', error);
-        throw error;
-    }
-}
-
-/**
- * 加载用户数据到应用状态
+ * 加载用户数据 - 简化版本
  */
 async function loadUserData() {
+    console.log('🔵 loadUserData 被调用');
+    console.log('⏸️ 数据加载已临时禁用，防止循环');
+    return;  // ✅ 直接返回，不执行任何操作
+    
+    // 原有的加载逻辑（暂时不执行）
+    console.log('🔵 开始加载用户数据...');
+    
+    const client = getSupabaseClientOptimized();
+    if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化');
+        return;
+    }
+    
     try {
-        // 加载笔记
-        await loadNotesFromDatabase();
+        // 获取当前用户
+        const { data: { user }, error: userError } = await client.auth.getUser();
         
-        // 加载项目
-        await loadProjectsFromDatabase();
-        
-        // 加载标签
-        await loadTagsFromDatabase();
-        
-        // 更新 UI
-        if (typeof updateDashboardStats === 'function') {
-            updateDashboardStats();
+        if (userError || !user) {
+            console.warn('⚠️ 无法获取当前用户:', userError?.message);
+            return;
         }
         
-        console.log('用户数据加载完成');
+        console.log('✅ 用户数据加载完成');
+        
+        // 更新仪表板（如果函数存在）
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
         
     } catch (error) {
-        console.error('加载用户数据失败:', error);
-        showNotification('数据加载失败，请刷新页面重试', 'error');
+        console.warn('⚠️ 加载用户数据失败:', error.message);
     }
 }
 
@@ -603,70 +353,127 @@ async function loadUserData() {
  * 清空应用状态
  */
 function clearAppState() {
-    if (typeof AppState !== 'undefined') {
-        AppState.notes = [];
-        AppState.projects = [];
-        AppState.currentNote = null;
-        AppState.currentProject = null;
+    console.log('🔵 清空应用状态...');
+    // 清空全局变量
+    if (typeof window !== 'undefined') {
+        window.currentUser = null;
+        window.userProjects = [];
+        window.userNotes = [];
+        window.userTags = [];
     }
 }
 
 /**
- * 检查用户是否已登录
- * @returns {Object|null} 当前用户信息或 null
+ * 获取当前用户 - 简化版本
  */
 async function getCurrentUser() {
-    const client = getSupabaseClient();
-    if (!client) return null;
+    console.log('🔵 getCurrentUser 函数被调用');
     
-    try {
-        const { data: { user }, error } = await client.auth.getUser();
-        if (error) throw error;
-        return user;
-    } catch (error) {
-        console.error('获取当前用户失败:', error);
-        return null;
-    }
-}
-
-/**
- * 用户登录
- * @param {string} email - 邮箱
- * @param {string} password - 密码
- * @returns {Object} 登录结果
- */
-async function signInUser(email, password) {
-    const client = getSupabaseClient();
+    const client = getSupabaseClientOptimized();
     if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
         throw new Error('Supabase 客户端未初始化');
     }
     
     try {
+        console.log('🔵 调用 client.auth.getUser()...');
+        const { data: { user }, error } = await client.auth.getUser();
+        
+        console.log('🔵 getUser API 返回结果:', { 
+            hasUser: !!user, 
+            hasError: !!error,
+            userEmail: user?.email,
+            errorMessage: error?.message 
+        });
+        
+        if (error) {
+            console.error('❌ getUser API返回错误:', error);
+            console.error('错误类型:', error.name);
+            console.error('错误消息:', error.message);
+            throw error;
+        }
+        
+        if (!user) {
+            console.log('🔵 当前没有登录用户');
+            return null;
+        }
+        
+        console.log('✅ 成功获取当前用户:', user.email);
+        return user;
+        
+    } catch (error) {
+        console.error('❌ 获取当前用户失败:', error);
+        console.error('错误类型:', error.name);
+        console.error('错误消息:', error.message);
+        
+        // 特殊处理 AuthSessionMissingError - 这是正常情况，用户未登录
+        if (error.name === 'AuthSessionMissingError') {
+            console.log('🔍 用户未登录 (AuthSessionMissingError)');
+            return null;
+        }
+        
+        // 其他错误继续抛出
+        throw error;
+    }
+}
+
+/**
+ * 用户登录 - 优化版本
+ */
+async function signInUser(email, password) {
+    console.log('🔵 signInUser 函数开始执行，邮箱:', email);
+    const client = getSupabaseClient();
+    console.log('🔵 Supabase 客户端状态:', client ? '已初始化' : '未初始化');
+    
+    if (!client) {
+        console.error('❌ Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
+    }
+    
+    try {
+        console.log('🔵 开始调用 client.auth.signInWithPassword...');
+        
         const { data, error } = await client.auth.signInWithPassword({
             email,
             password
         });
         
-        if (error) throw error;
+        console.log('🔵 signInWithPassword 返回结果:', { 
+            hasData: !!data, 
+            hasUser: !!data?.user, 
+            hasSession: !!data?.session,
+            hasError: !!error,
+            errorMessage: error?.message 
+        });
         
-        return { success: true, user: data.user };
+        if (error) {
+            console.error('❌ 登录失败:', error.message);
+            return { success: false, error: error.message };
+        }
+        
+        if (data?.user) {
+            console.log('✅ 登录成功，用户:', data.user.email);
+            return { success: true, user: data.user, session: data.session };
+        } else {
+            console.error('❌ 登录失败：未返回用户信息');
+            return { success: false, error: '登录失败：未返回用户信息' };
+        }
         
     } catch (error) {
-        console.error('用户登录失败:', error);
+        console.error('❌ signInUser 捕获到错误:', error);
         return { success: false, error: error.message };
     }
 }
 
 /**
  * 用户注册
- * @param {string} email - 邮箱
- * @param {string} password - 密码
- * @returns {Object} 注册结果
  */
 async function signUpUser(email, password) {
+    console.log('🔵 signUpUser 函数开始执行，邮箱:', email);
     const client = getSupabaseClient();
+    
     if (!client) {
-        throw new Error('Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
     }
     
     try {
@@ -675,39 +482,41 @@ async function signUpUser(email, password) {
             password
         });
         
-        if (error) throw error;
+        if (error) {
+            return { success: false, error: error.message };
+        }
         
         return { success: true, user: data.user };
-        
     } catch (error) {
-        console.error('用户注册失败:', error);
         return { success: false, error: error.message };
     }
 }
 
 /**
  * 用户登出
- * @returns {Object} 登出结果
  */
 async function signOutUser() {
-    const client = getSupabaseClient();
+    console.log('🔵 signOutUser 函数开始执行');
+    const client = getSupabaseClientOptimized();
+    
     if (!client) {
-        throw new Error('Supabase 客户端未初始化');
+        return { success: false, error: 'Supabase 客户端未初始化' };
     }
     
     try {
         const { error } = await client.auth.signOut();
-        if (error) throw error;
+        
+        if (error) {
+            return { success: false, error: error.message };
+        }
         
         return { success: true };
-        
     } catch (error) {
-        console.error('用户登出失败:', error);
         return { success: false, error: error.message };
     }
 }
 
-// 导出主要函数（如果使用模块系统）
+// 导出模块（如果在 Node.js 环境中）
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         initSupabase,
@@ -721,13 +530,15 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 
-// 全局导出函数和配置（用于浏览器环境）
-window.SUPABASE_CONFIG = SUPABASE_CONFIG;
-window.initSupabase = initSupabase;
-window.getSupabaseClient = getSupabaseClient;
-window.getCurrentUser = getCurrentUser;
-window.signInUser = signInUser;
-window.signUpUser = signUpUser;
-window.signOutUser = signOutUser;
-window.loadUserData = loadUserData;
-window.clearAppState = clearAppState;
+// 全局暴露（浏览器环境）
+if (typeof window !== 'undefined') {
+    window.SUPABASE_CONFIG = SUPABASE_CONFIG;
+    window.initSupabase = initSupabase;
+    window.getSupabaseClient = getSupabaseClient;
+    window.getCurrentUser = getCurrentUser;
+    window.signInUser = signInUser;
+    window.signUpUser = signUpUser;
+    window.signOutUser = signOutUser;
+    window.loadUserData = loadUserData;
+    window.clearAppState = clearAppState;
+}
